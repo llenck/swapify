@@ -2,8 +2,8 @@ CFLAGS ?= -Wall -Wextra
 LDFLAGS ?=
 CC ?= gcc
 
-EXE_OBJECTS := main-exe.o
-LIB_OBJECTS := lib-lib.o
+EXE_OBJECTS := main-exe.o libparsemaps-exe.o
+LIB_OBJECTS := lib-lib.o libparsemaps-lib.o
 HEADERS :=
 
 debug : CFLAGS += -Og -g -pg
