@@ -9,6 +9,7 @@ struct mapping_info {
 	int private;
 	int offs;
 	int major, minor;
+	uint64_t ino;
 	const char* path;
 	int path_len;
 };
