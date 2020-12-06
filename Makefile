@@ -2,7 +2,7 @@ CFLAGS ?= -Wall -Wextra
 LDFLAGS ?=
 CC ?= gcc
 
-EXE_OBJECTS := main-exe.o libparsemaps-exe.o
+TEST_OBJECTS := main-exe.o libparsemaps-exe.o
 LIB_OBJECTS := lib-lib.o libparsemaps-lib.o
 HEADERS :=
 
@@ -11,11 +11,11 @@ release : CFLAGS += -O3
 debug : LDFLAGS +=
 release : LDFLAGS += -O
 
-debug: main lib.so
-release: main lib.so
+debug: test lib.so
+release: test lib.so
 
-main: $(EXE_OBJECTS) $(HEADERS)
-	$(CC) $(EXE_OBJECTS) $(LDFLAGS) -o $@
+test: $(TEST_OBJECTS) $(HEADERS)
+	$(CC) $(TEST_OBJECTS) $(LDFLAGS) -o $@
 
 lib.so: $(LIB_OBJECTS) $(HEADERS)
 	$(CC) $(LIB_OBJECTS) $(LDFLAGS) -shared -o $@
@@ -28,4 +28,4 @@ lib.so: $(LIB_OBJECTS) $(HEADERS)
 
 .PHONY: clean
 clean:
-	$(RM) main $(EXE_OBJECTS) lib.so $(LIB_OBJECTS)
+	$(RM) test $(TEST_OBJECTS) lib.so $(LIB_OBJECTS)
