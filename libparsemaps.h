@@ -14,6 +14,6 @@ struct mapping_info {
 	int path_len;
 };
 
-int parse_maps(long int pid);
+int parse_maps(long int pid, int (*cb)(struct mapping_info*));
 
 #endif

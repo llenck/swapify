@@ -57,48 +57,46 @@ static void parse_dec_u64(const char** str, off_t len, uint64_t* val) {
 	}
 }
 
-static int line_kek(const char* str, size_t len) {
+static int parse_line(const char* str, size_t len, struct mapping_info* inf) {
 	const char* const og_str = str;
 
-	struct mapping_info inf = { 0 };
-
-	parse_hex_u64(&str, len, &inf.start);
+	parse_hex_u64(&str, len, &inf->start);
 	if ((ssize_t)len <= str - og_str) {
 		return -1;
 	}
 
-	parse_hex_u64(&str, len - (str - og_str), &inf.end);
-	// also check length for the inf.permsissions, since those are constant-length
+	parse_hex_u64(&str, len - (str - og_str), &inf->end);
+	// also check length for the inf->permsissions, since those are constant-length
 	if ((ssize_t)len <= str - og_str + 4) {
 		return -1;
 	}
 
 	if (*str++ == 'r') {
-		inf.perms |= PROT_READ;
+		inf->perms |= PROT_READ;
 	}
 	if (*str++ == 'w') {
-		inf.perms |= PROT_WRITE;
+		inf->perms |= PROT_WRITE;
 	}
 	if (*str++ == 'x') {
-		inf.perms |= PROT_EXEC;
+		inf->perms |= PROT_EXEC;
 	}
-	inf.private = *str++ == 'p';
+	inf->private = *str++ == 'p';
 
 	str++;
 
-	parse_hex_i(&str, len - (str - og_str), &inf.offs);
+	parse_hex_i(&str, len - (str - og_str), &inf->offs);
 	if ((ssize_t)len <= str - og_str) {
 		return -1;
 	}
-	parse_hex_i(&str, len - (str - og_str), &inf.major);
+	parse_hex_i(&str, len - (str - og_str), &inf->major);
 	if ((ssize_t)len <= str - og_str) {
 		return -1;
 	}
-	parse_hex_i(&str, len - (str - og_str), &inf.minor);
+	parse_hex_i(&str, len - (str - og_str), &inf->minor);
 	if ((ssize_t)len <= str - og_str) {
 		return -1;
 	}
-	parse_dec_u64(&str, len - (str - og_str), &inf.ino);
+	parse_dec_u64(&str, len - (str - og_str), &inf->ino);
 	if ((ssize_t)len <= str - og_str) {
 		return -1;
 	}
@@ -106,13 +104,8 @@ static int line_kek(const char* str, size_t len) {
 	while (*str == ' ' && str < og_str + len) {
 		str++;
 	}
-	inf.path = str;
-	inf.path_len = len - (str - og_str);
-
-	printf("from %lx to %lx with perms %d priv %d; offs major:minor = %x %x:%x with"
-			" inode %ld and path %.*s\n",
-			inf.start, inf.end, inf.perms, inf.private, inf.offs, inf.major, inf.minor,
-			inf.ino, inf.path_len, inf.path);
+	inf->path = str;
+	inf->path_len = len - (str - og_str);
 
 	return 0;
 }
@@ -126,7 +119,7 @@ static int open_smaps(long int pid) {
 
 const int buf_len = 4096;
 
-int parse_maps(long int pid) {
+int parse_maps(long int pid, int (*cb)(struct mapping_info*)) {
 	int fd = open_smaps(pid);
 	if (fd < 0) {
 		perror("Failed to open smaps");
@@ -169,8 +162,9 @@ int parse_maps(long int pid) {
 		}
 
 		if (buf[offs] == '\n') {
-			int ret = line_kek(buf + first_of_line, offs - first_of_line);
-			if (ret < 0) {
+			struct mapping_info info;
+			int ret = parse_line(buf + first_of_line, offs - first_of_line, &info);
+			if (ret < 0 || (ret = cb(&info)) < 0) {
 				// exit and pass error
 				return ret;
 			}
