@@ -3,7 +3,7 @@ LDFLAGS ?=
 CC ?= gcc
 
 TEST_OBJECTS := main-exe.o libparsemaps-exe.o
-LIB_OBJECTS := lib_main-lib.o lib_ipc-lib.o libparsemaps-lib.o
+LIB_OBJECTS := lib_main-lib.o lib_ipc-lib.o lib_fileio-lib.o libparsemaps-lib.o
 HEADERS :=
 
 debug : CFLAGS += -Og -g -pg

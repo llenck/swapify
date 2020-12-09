@@ -8,6 +8,7 @@
 
 #include "libparsemaps.h"
 #include "lib_ipc.h"
+#include "lib_fileio.h"
 
 #define STACK_SZ (64 * 1024)
 
@@ -20,11 +21,10 @@ static void sigint_handler(int sig) {
 	_exit(0);
 }
 
-// doing anything in this function isn't safe; we rely on memory allocated by the other
-// process, which may exit at any time. however, this program isn't meant to be used for
-// processes that are short-lived anyway, so idc, and if i ever do, the best thing is
-// probably to pass the child pid to the main process where the destructor of the
-// library SIGKILLS the child.
+// doing anything at all in the child isn't safe; we rely on memory allocated by the other
+// process, which may exit at any time. but unless it exits abnormally, we will get
+// SIGKILLed, and otherwise we should get a segfault and crash, which might leave an
+// unused socket in /run/user/[uid]/swapify, which isn't too big of an issue
 static int lib_main(void* arg) {
 	(void)arg;
 
@@ -32,6 +32,7 @@ static int lib_main(void* arg) {
 	signal(SIGINT, sigint_handler);
 
 	swapify_init_ipc(parent_pid);
+	swapify_init_fileio();
 
 	sleep(999999999);
 
@@ -50,7 +51,7 @@ static void __attribute__((constructor)) setup() {
 	// CLONE_PARENT prevents programs like strace from waiting for the child to exit,
 	// which it never would without the parent exiting
 	child_pid = clone(lib_main, child_stack_last_qword,
-			CLONE_VM | CLONE_FILES | CLONE_FS | CLONE_PARENT, child_stack);
+			CLONE_VM | CLONE_FILES | CLONE_PARENT, child_stack);
 }
 
 static void __attribute__((destructor)) destroy() {
@@ -59,4 +60,5 @@ static void __attribute__((destructor)) destroy() {
 	}
 
 	swapify_close_ipc();
+	swapify_close_fileio();
 }

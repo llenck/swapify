@@ -1,4 +1,5 @@
 #include "lib_ipc.h"
+#include "lib_fileio.h"
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -12,7 +13,7 @@ static int dirfd = -1;
 static int sockfd = -1;
 
 static void open_run_dir() {
-	char path[512];
+	char path[128];
 	sprintf(path, "/run/user/%d/swapify", geteuid());
 
 	mkdir(path, 0700);
