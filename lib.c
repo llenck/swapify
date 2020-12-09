@@ -28,7 +28,7 @@ static void sigint_handler(int sig) {
 	_exit(0);
 }
 
-void open_run_dir() {
+static void open_run_dir() {
 	char path[512];
 	sprintf(path, "/run/user/%d/swapify", geteuid());
 
@@ -40,7 +40,7 @@ void open_run_dir() {
 	}
 }
 
-void open_pid_socket() {
+static void open_pid_socket() {
 	struct sockaddr_un address;
 	address.sun_family = AF_UNIX;
 	int sock_name_offs;
@@ -68,7 +68,7 @@ void open_pid_socket() {
 // processes that are short-lived anyway, so idc, and if i ever do, the best thing is
 // probably to pass the child pid to the main process where the destructor of the
 // library SIGKILLS the child.
-int lib_main(void* arg) {
+static int lib_main(void* arg) {
 	(void)arg;
 
 	prctl(PR_SET_PDEATHSIG, SIGINT);
