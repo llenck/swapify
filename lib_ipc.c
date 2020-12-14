@@ -98,10 +98,10 @@ static void accept_conn(int watch_pid) {
 	}
 }
 
-static char read_cmd(int watch_pid) {
+static signed char read_cmd(int watch_pid) {
 	loop_for_pollin(connfd, watch_pid);
 
-	char cmd;
+	signed char cmd;
 	if (recv(connfd, &cmd, 1, 0) < 0) {
 		close(connfd);
 		connfd = -1;
@@ -114,7 +114,7 @@ static char read_cmd(int watch_pid) {
 enum swapify_msg swapify_get_message(int watch_pid) {
 	while (1) {
 		accept_conn(watch_pid);
-		char cmd = read_cmd(watch_pid);
+		signed char cmd = read_cmd(watch_pid);
 
 		if (cmd != -1) {
 			return cmd;
