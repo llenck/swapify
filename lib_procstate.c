@@ -5,8 +5,9 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 
-int process_state(int pid) {
+int swapify_process_state(int pid) {
 	char path[128];
 	sprintf(path, "/proc/%d/status", pid);
 	int fd = open(path, O_RDONLY);
@@ -21,10 +22,15 @@ int process_state(int pid) {
 		if (offs <= valid_bytes) {
 			int new_bytes = read(fd, buf + offs, 128 - offs);
 			if (new_bytes < 0) {
-				return -1;
+				if (errno == EINTR) {
+					continue;
+				}
+				else {
+					return -1;
+				}
 			}
 			if (new_bytes == 0) {
-				continue;
+				return -1;
 			}
 		}
 
