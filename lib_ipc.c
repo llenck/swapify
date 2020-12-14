@@ -1,7 +1,8 @@
 #include "lib_ipc.h"
-#include "lib_fileio.h"
 
 #include <fcntl.h>
+#include <poll.h>
+#include <signal.h>
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -45,6 +46,10 @@ static void open_pid_socket(int parent_pid) {
 	if (bind(sockfd, (const struct sockaddr*)&address, sizeof(address)) < 0) {
 		_exit(1);
 	}
+
+	if (listen(sockfd, 4) < 0) {
+		_exit(1);
+	}
 }
 
 void swapify_init_ipc(int parent_pid) {
@@ -68,5 +73,60 @@ void swapify_close_ipc() {
 	}
 	if (sockfd >= 0) {
 		close(sockfd);
+	}
+}
+
+static int connfd = -1;
+
+static void loop_for_pollin(int fd, int watch_pid) {
+	struct pollfd ev = { fd, POLLIN, 0 };
+
+	do {
+		poll(&ev, 1, 1000);
+
+		if (kill(watch_pid, 0) < 0) {
+			_exit(0);
+		}
+	} while (!ev.revents);
+}
+
+static void accept_conn(int watch_pid) {
+	loop_for_pollin(sockfd, watch_pid);
+
+	if ((connfd = accept(sockfd, NULL, NULL)) < 0) {
+		_exit(1);
+	}
+}
+
+static char read_cmd(int watch_pid) {
+	loop_for_pollin(connfd, watch_pid);
+
+	char cmd;
+	if (recv(connfd, &cmd, 1, 0) < 0) {
+		close(connfd);
+		connfd = -1;
+		return -1;
+	}
+
+	return cmd;
+}
+
+enum swapify_msg swapify_get_message(int watch_pid) {
+	while (1) {
+		accept_conn(watch_pid);
+		char cmd = read_cmd(watch_pid);
+
+		if (cmd != -1) {
+			return cmd;
+		}
+	}
+}
+
+void swapify_reply_message(enum swapify_reply reply) {
+	if (connfd != -1) {
+		char msg = reply;
+		send(connfd, &msg, 1, 0);
+		close(connfd);
+		connfd = -1;
 	}
 }

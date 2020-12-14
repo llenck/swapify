@@ -18,6 +18,8 @@ static int parent_pid = 0;
 static void sigint_handler(int sig) {
 	(void)sig;
 	// exit directly; cleanup is done by the main process
+	// (assuming its not swapped out, lol. If it is, the user will have fun
+	// letting it segfault by sending SIGCONT manually)
 	_exit(0);
 }
 
@@ -34,9 +36,37 @@ static int lib_main(void* arg) {
 	swapify_init_ipc(parent_pid);
 	swapify_init_fileio();
 
-	sleep(999999999);
+	int proc_swapped = 0;
 
-	return 0;
+	enum swapify_msg msg;
+	while ((msg = swapify_get_message(parent_pid)) != SWAPIFY_MSG_EXIT) {
+		if (msg == SWAPIFY_MSG_SWAP) {
+			if (proc_swapped) {
+				swapify_reply_message(SWAPIFY_REPLY_NOOP);
+				continue;
+			}
+
+			write(1, "s\n", 2);
+
+			swapify_reply_message(SWAPIFY_REPLY_SUCCESS);
+		}
+		else if (msg == SWAPIFY_MSG_UNSWAP) {
+			if (!proc_swapped) {
+				swapify_reply_message(SWAPIFY_REPLY_NOOP);
+				continue;
+			}
+
+			write(1, "u\n", 2);
+
+			swapify_reply_message(SWAPIFY_REPLY_ERROR);
+		}
+		else {
+			// ??
+			_exit(1);
+		}
+	}
+
+	_exit(0);
 }
 
 static void __attribute__((constructor)) setup() {
