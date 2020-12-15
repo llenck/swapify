@@ -103,10 +103,10 @@ static void accept_conn() {
 	}
 }
 
-static char read_cmd() {
+static signed char read_cmd() {
 	loop_for_pollin(connfd);
 
-	char cmd;
+	signed char cmd;
 	if (recv(connfd, &cmd, 1, 0) < 0) {
 		close(connfd);
 		connfd = -1;
@@ -119,7 +119,7 @@ static char read_cmd() {
 enum swapify_msg swapify_get_message() {
 	while (1) {
 		accept_conn();
-		char cmd = read_cmd();
+		signed char cmd = read_cmd();
 
 		if (cmd != -1) {
 			return cmd;
