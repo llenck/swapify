@@ -10,6 +10,8 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include "lib_utils.h"
+
 static int dirfd = -1;
 static int sockfd = -1;
 
@@ -25,12 +27,13 @@ static void open_run_dir() {
 	}
 }
 
-static void open_pid_socket(int parent_pid) {
+static void open_pid_socket() {
 	struct sockaddr_un address;
 	address.sun_family = AF_UNIX;
 	int sock_name_offs;
 	int ret = snprintf(address.sun_path, sizeof(address.sun_path),
-			"/run/user/%d/swapify/%n%d.sock", geteuid(), &sock_name_offs, parent_pid);
+			"/run/user/%d/swapify/%n%d.sock",
+			geteuid(), &sock_name_offs, swapify_parent_pid);
 
 	if ((unsigned)ret >= sizeof(address.sun_path)) {
 		_exit(1);
@@ -52,15 +55,15 @@ static void open_pid_socket(int parent_pid) {
 	}
 }
 
-void swapify_init_ipc(int parent_pid) {
+void swapify_init_ipc() {
 	open_run_dir();
-	open_pid_socket(parent_pid);
+	open_pid_socket();
 }
 
 void swapify_close_ipc() {
 	if (dirfd >= 0 && sockfd >= 0) {
 		char socket_name[64];
-		sprintf(socket_name, "%d.sock", getpid());
+		sprintf(socket_name, "%d.sock", swapify_parent_pid);
 		unlinkat(dirfd, socket_name, 0);
 
 		char dir_path[128];
@@ -70,36 +73,38 @@ void swapify_close_ipc() {
 
 	if (dirfd >= 0) {
 		close(dirfd);
+		dirfd = -1;
 	}
 	if (sockfd >= 0) {
 		close(sockfd);
+		sockfd = -1;
 	}
 }
 
 static int connfd = -1;
 
-static void loop_for_pollin(int fd, int watch_pid) {
+static void loop_for_pollin(int fd) {
 	struct pollfd ev = { fd, POLLIN, 0 };
 
 	do {
 		poll(&ev, 1, 1000);
 
-		if (kill(watch_pid, 0) < 0) {
-			_exit(0);
+		if (kill(swapify_parent_pid, 0) < 0) {
+			swapify_exit(0);
 		}
 	} while (!ev.revents);
 }
 
-static void accept_conn(int watch_pid) {
-	loop_for_pollin(sockfd, watch_pid);
+static void accept_conn() {
+	loop_for_pollin(sockfd);
 
 	if ((connfd = accept(sockfd, NULL, NULL)) < 0) {
-		_exit(1);
+		swapify_exit(1);
 	}
 }
 
-static char read_cmd(int watch_pid) {
-	loop_for_pollin(connfd, watch_pid);
+static char read_cmd() {
+	loop_for_pollin(connfd);
 
 	char cmd;
 	if (recv(connfd, &cmd, 1, 0) < 0) {
@@ -111,10 +116,10 @@ static char read_cmd(int watch_pid) {
 	return cmd;
 }
 
-enum swapify_msg swapify_get_message(int watch_pid) {
+enum swapify_msg swapify_get_message() {
 	while (1) {
-		accept_conn(watch_pid);
-		char cmd = read_cmd(watch_pid);
+		accept_conn();
+		char cmd = read_cmd();
 
 		if (cmd != -1) {
 			return cmd;

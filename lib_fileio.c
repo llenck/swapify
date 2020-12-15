@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <linux/limits.h>
 
+#include "lib_utils.h"
+
 static int dirfd = -1;
 
 void swapify_init_fileio() {
@@ -28,17 +30,17 @@ void swapify_init_fileio() {
 	}
 }
 
-int swapify_open_swap(int parent_pid) {
+int swapify_open_swap() {
 	char name[64];
-	sprintf(name, "%d.swap", parent_pid);
+	sprintf(name, "%d.swap", swapify_parent_pid);
 	int fd = openat(dirfd, name, O_RDWR | O_CREAT | O_EXCL); // O_TMPFILE?
 
 	return fd;
 }
 
-void swapify_unlink_swap(int parent_pid) {
+void swapify_unlink_swap() {
 	char name[64];
-	sprintf(name, "%d.swap", parent_pid);
+	sprintf(name, "%d.swap", swapify_parent_pid);
 
 	unlinkat(dirfd, name, 0);
 }
@@ -46,9 +48,10 @@ void swapify_unlink_swap(int parent_pid) {
 void swapify_close_fileio() {
 	if (dirfd >= 0) {
 		char path[64];
-		sprintf(path, "%d.swap", getpid());
+		sprintf(path, "%d.swap", swapify_parent_pid);
 		unlinkat(dirfd, path, 0);
 		close(dirfd);
+		dirfd = -1;
 
 		// unlike in the ipc exit function, we don't try to delete ~/.cache/swapify,
 		// because there might be swapify instances running that have a file descriptor for

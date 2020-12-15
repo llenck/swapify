@@ -9,18 +9,16 @@
 #include "libparsemaps.h"
 #include "lib_ipc.h"
 #include "lib_fileio.h"
+#include "lib_utils.h"
 
 #define STACK_SZ (64 * 1024)
 
 static int child_pid = 0;
-static int parent_pid = 0;
+int swapify_parent_pid = 0;
 
 static void sigint_handler(int sig) {
 	(void)sig;
-	// exit directly; cleanup is done by the main process
-	// (assuming its not swapped out, lol. If it is, the user will have fun
-	// letting it segfault by sending SIGCONT manually)
-	_exit(0);
+	swapify_exit(0);
 }
 
 // doing anything at all in the child isn't safe; we rely on memory allocated by the other
@@ -33,13 +31,13 @@ static int lib_main(void* arg) {
 	prctl(PR_SET_PDEATHSIG, SIGINT);
 	signal(SIGINT, sigint_handler);
 
-	swapify_init_ipc(parent_pid);
+	swapify_init_ipc();
 	swapify_init_fileio();
 
 	int proc_swapped = 0;
 
 	enum swapify_msg msg;
-	while ((msg = swapify_get_message(parent_pid)) != SWAPIFY_MSG_EXIT) {
+	while ((msg = swapify_get_message()) != SWAPIFY_MSG_EXIT) {
 		if (msg == SWAPIFY_MSG_SWAP) {
 			if (proc_swapped) {
 				swapify_reply_message(SWAPIFY_REPLY_NOOP);
@@ -62,11 +60,11 @@ static int lib_main(void* arg) {
 		}
 		else {
 			// ??
-			_exit(1);
+			swapify_exit(1);
 		}
 	}
 
-	_exit(0);
+	swapify_exit(0);
 }
 
 static void __attribute__((constructor)) setup() {
@@ -76,7 +74,7 @@ static void __attribute__((constructor)) setup() {
 	unsigned char* child_stack_last_qword = child_stack + STACK_SZ - 8;
 
 	// send our pid to our child
-	parent_pid = getpid();
+	swapify_parent_pid = getpid();
 
 	// CLONE_PARENT prevents programs like strace from waiting for the child to exit,
 	// which it never would without the parent exiting
@@ -84,11 +82,20 @@ static void __attribute__((constructor)) setup() {
 			CLONE_VM | CLONE_FILES | CLONE_PARENT, child_stack);
 }
 
+static void swapify_cleanup() {
+	swapify_close_ipc();
+	swapify_close_fileio();
+}
+
 static void __attribute__((destructor)) destroy() {
 	if (child_pid) {
 		kill(child_pid, SIGKILL);
 	}
 
-	swapify_close_ipc();
-	swapify_close_fileio();
+	swapify_cleanup();
+}
+
+void __attribute__((noreturn)) swapify_exit(int code) {
+	swapify_cleanup();
+	_exit(code);
 }
