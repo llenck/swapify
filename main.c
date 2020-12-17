@@ -1,6 +1,7 @@
 #include "libparsemaps.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <unistd.h>
 
@@ -13,8 +14,13 @@ int map_cb(struct mapping_info* info) {
 	return 0;
 }
 
-int main() {
-	parse_maps(getpid(), map_cb);
+int main(int argc, char** argv) {
+	if (argc < 2) {
+		parse_maps(getpid(), map_cb);
+	}
+	else {
+		parse_maps(atoll(argv[1]), map_cb);
+	}
 
 	return 0;
 }
