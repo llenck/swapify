@@ -6,10 +6,10 @@
 #include <sys/prctl.h>
 #include <unistd.h>
 
-#include "libparsemaps.h"
 #include "lib_ipc.h"
 #include "lib_fileio.h"
 #include "lib_utils.h"
+#include "lib_swap.h"
 
 #define STACK_SZ (64 * 1024)
 
@@ -44,9 +44,13 @@ static int lib_main(void* arg) {
 				continue;
 			}
 
-			write(1, "s\n", 2);
-
-			swapify_reply_message(SWAPIFY_REPLY_SUCCESS);
+			if (swapify_do_swap() == 0) {
+				swapify_reply_message(SWAPIFY_REPLY_SUCCESS);
+				proc_swapped = 1;
+			}
+			else {
+				swapify_reply_message(SWAPIFY_REPLY_ERROR);
+			}
 		}
 		else if (msg == SWAPIFY_MSG_UNSWAP) {
 			if (!proc_swapped) {
@@ -54,14 +58,23 @@ static int lib_main(void* arg) {
 				continue;
 			}
 
-			write(1, "u\n", 2);
-
-			swapify_reply_message(SWAPIFY_REPLY_ERROR);
+			if (swapify_do_unswap() == 0) {
+				swapify_reply_message(SWAPIFY_REPLY_SUCCESS);
+				proc_swapped = 0;
+			}
+			else {
+				swapify_reply_message(SWAPIFY_REPLY_ERROR);
+			}
 		}
 		else {
 			// ??
-			swapify_exit(1);
+			swapify_reply_message(SWAPIFY_REPLY_ERROR);
 		}
+	}
+
+	if (proc_swapped) {
+		// don't leave parent process swapped if get told to kys
+		swapify_do_unswap();
 	}
 
 	swapify_exit(0);

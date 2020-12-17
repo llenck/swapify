@@ -14,6 +14,7 @@
 
 static int dirfd = -1;
 static int sockfd = -1;
+static int connfd = -1;
 
 static void open_run_dir() {
 	char path[128];
@@ -79,9 +80,12 @@ void swapify_close_ipc() {
 		close(sockfd);
 		sockfd = -1;
 	}
-}
 
-static int connfd = -1;
+	if (connfd >= 0) {
+		close(connfd);
+		connfd = -1;
+	}
+}
 
 static void loop_for_pollin(int fd) {
 	struct pollfd ev = { fd, POLLIN, 0 };
