@@ -4,6 +4,8 @@
 #include <poll.h>
 #include <signal.h>
 #include <stdio.h>
+#include <string.h>
+#include <sys/prctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -27,6 +29,8 @@ static void open_run_dir() {
 		_exit(1);
 	}
 }
+
+static char link_path[64] = { 0 };
 
 static void open_pid_socket() {
 	struct sockaddr_un address;
@@ -54,6 +58,13 @@ static void open_pid_socket() {
 	if (listen(sockfd, 4) < 0) {
 		_exit(1);
 	}
+
+	char name[16];
+	if (prctl(PR_GET_NAME, name) == 0) {
+		 sprintf(link_path, "%s.%d.sock", name, swapify_parent_pid);
+
+		 symlinkat(address.sun_path + sock_name_offs, dirfd, link_path);
+	}
 }
 
 void swapify_init_ipc() {
@@ -66,6 +77,14 @@ void swapify_close_ipc() {
 		char socket_name[64];
 		sprintf(socket_name, "%d.sock", swapify_parent_pid);
 		unlinkat(dirfd, socket_name, 0);
+
+		// check whether link_path is valid, in case we're the parent and our child died
+		// before or while generating link_path. We can't just generate link_path
+		// ourselves, because the name that it would be created at can change during
+		// runtime
+		if (memchr(link_path, '\0', 64) != NULL) {
+			unlinkat(dirfd, link_path, 0);
+		}
 
 		char dir_path[128];
 		sprintf(dir_path, "/run/user/%d/swapify", geteuid());
