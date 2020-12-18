@@ -18,13 +18,13 @@ void swapify_init_fileio() {
 		_exit(0);
 	}
 
-	int cachefd = open(path, O_DIRECTORY | O_RDONLY);
+	int cachefd = open(path, O_DIRECTORY | O_RDONLY | O_CLOEXEC);
 	if (cachefd < 0) {
 		_exit(0);
 	}
 
 	mkdirat(cachefd, "swapify", 0700);
-	dirfd = openat(cachefd, "swapify", O_DIRECTORY | O_RDONLY);
+	dirfd = openat(cachefd, "swapify", O_DIRECTORY | O_RDONLY | O_CLOEXEC);
 	if (dirfd < 0) {
 		_exit(0);
 	}
@@ -33,7 +33,7 @@ void swapify_init_fileio() {
 int swapify_open_swap() {
 	char name[64];
 	sprintf(name, "%d.swap", swapify_parent_pid);
-	int fd = openat(dirfd, name, O_RDWR | O_CREAT | O_EXCL); // O_TMPFILE?
+	int fd = openat(dirfd, name, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC); // O_TMPFILE?
 
 	return fd;
 }

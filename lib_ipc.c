@@ -21,7 +21,7 @@ static void open_run_dir() {
 	sprintf(path, "/run/user/%d/swapify", geteuid());
 
 	mkdir(path, 0700);
-	dirfd = open(path, O_DIRECTORY | O_RDONLY);
+	dirfd = open(path, O_DIRECTORY | O_RDONLY | O_CLOEXEC);
 	if (dirfd < 0) {
 		// abort without doing any cleanup
 		_exit(1);
