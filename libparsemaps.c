@@ -71,6 +71,7 @@ static int parse_line(const char* str, size_t len, struct mapping_info* inf) {
 		return -1;
 	}
 
+	inf->perms = 0;
 	if (*str++ == 'r') {
 		inf->perms |= PROT_READ;
 	}
@@ -98,7 +99,9 @@ static int parse_line(const char* str, size_t len, struct mapping_info* inf) {
 	}
 	parse_dec_u64(&str, len - (str - og_str), &inf->ino);
 	if ((ssize_t)len <= str - og_str) {
-		return -1;
+		inf->path = NULL;
+		inf->path_len = 0;
+		return 0;
 	}
 
 	while (*str == ' ' && str < og_str + len) {
