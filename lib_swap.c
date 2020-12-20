@@ -115,14 +115,11 @@ static int swap_cb(struct mapping_info* info) {
 		return 0;
 	}
 
-	char msg[256];
 
-	sprintf(msg, "Would swap:\nFrom %lx to %lx with perms %d priv %d;"
+	swapify_log_fmt(256, "Would swap:\nFrom %lx to %lx with perms %d priv %d;"
 			" offs major:minor = %x %x:%x with inode %ld and path %.*s\n",
 			info->start, info->end, info->perms, info->private, info->offs, info->major,
 			info->minor, info->ino, info->path_len, info->path);
-
-	swapify_log(msg);
 
 	return 0;
 }
@@ -130,9 +127,7 @@ static int swap_cb(struct mapping_info* info) {
 int swapify_do_swap() {
 	swap_fd = swapify_open_swap();
 	if (swap_fd < 0) {
-		char msg[64];
-		sprintf(msg, "Couldn't open swap file: %s\n", strerror(errno));
-		swapify_log(msg);
+		swapify_log_fmt(128, "Couldn't open swap file: %s\n", strerror(errno));
 		return -1;
 	}
 

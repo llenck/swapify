@@ -42,9 +42,7 @@ static int lib_main(void* arg) {
 
 	enum swapify_msg msg;
 	while ((msg = swapify_get_message()) != SWAPIFY_MSG_EXIT) {
-		char log_str[64];
-		sprintf(log_str, "Got message: %d\n", msg);
-		swapify_log(log_str);
+		swapify_log_fmt(32, "Got message: %d\n", msg);
 
 		if (msg == SWAPIFY_MSG_SWAP) {
 			if (proc_swapped) {
