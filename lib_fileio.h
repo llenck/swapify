@@ -7,4 +7,10 @@ void swapify_close_fileio();
 int swapify_open_swap();
 void swapify_unlink_swap();
 
+#ifdef NDEBUG
+#define swapify_log(x) ((void)0)
+#else
+void swapify_log(const char* s);
+#endif
+
 #endif

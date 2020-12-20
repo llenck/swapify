@@ -7,7 +7,7 @@ LIB_OBJECTS := lib_main-lib.o lib_ipc-lib.o lib_fileio-lib.o lib_procstate-lib.o
 HEADERS := lib_ipc.h ipc_defs.h lib_fileio.h lib_utils.h lib_procstate.h lib_swap.h libparsemaps.h
 
 debug : CFLAGS += -Og -g -pg
-release : CFLAGS += -O3
+release : CFLAGS += -O3 -DNDEBUG
 debug : LDFLAGS +=
 release : LDFLAGS += -O
 

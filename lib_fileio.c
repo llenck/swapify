@@ -1,33 +1,46 @@
 #include "lib_fileio.h"
 
 #include <fcntl.h>
+#include <linux/limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/random.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <linux/limits.h>
 
 #include "lib_utils.h"
 
 static int dirfd = -1;
 
+#ifndef NDEBUG
+static int logfd = -1;
+#endif
+
 void swapify_init_fileio() {
 	char path[PATH_MAX];
-	int ret = snprintf(path, PATH_MAX, "%s/.cache", getenv("HOME"));
+	int ret = snprintf(path, PATH_MAX, "%s/.swapify", getenv("HOME"));
 	if (ret >= PATH_MAX) {
 		_exit(0);
 	}
 
-	int cachefd = open(path, O_DIRECTORY | O_RDONLY | O_CLOEXEC);
-	if (cachefd < 0) {
-		_exit(0);
-	}
-
-	mkdirat(cachefd, "swapify", 0700);
-	dirfd = openat(cachefd, "swapify", O_DIRECTORY | O_RDONLY | O_CLOEXEC);
+	mkdir(path, 0700);
+	dirfd = open(path, O_DIRECTORY | O_RDONLY | O_CLOEXEC);
 	if (dirfd < 0) {
 		_exit(0);
 	}
+
+#ifndef NDEBUG
+	// generate a almost securely unique path name for our log file
+	long long unsigned int random = 0;
+	getrandom(&random, sizeof(random), 0); // ignore error; probably unique anyway
+	char log_name[64];
+	sprintf(log_name, "log-%d-%d-%016llx", getpid(), swapify_parent_pid, random);
+
+	// ignore if this fails, swapify_log checks for logfd < 0
+	logfd = openat(dirfd, log_name, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0755);
+#endif
 }
 
 int swapify_open_swap() {
@@ -52,9 +65,26 @@ void swapify_close_fileio() {
 		unlinkat(dirfd, path, 0);
 		close(dirfd);
 		dirfd = -1;
-
-		// unlike in the ipc exit function, we don't try to delete ~/.cache/swapify,
-		// because there might be swapify instances running that have a file descriptor for
-		// the directory but don't have any files open in the directory
 	}
 }
+
+#ifndef NDEBUG
+void swapify_log(const char* s) {
+	if (logfd < 0) {
+		return;
+	}
+
+	size_t n = strlen(s);
+	size_t done = 0;
+
+	do {
+		ssize_t x = write(logfd, s + done, n - done);
+
+		if (x <= 0) {
+			return;
+		}
+
+		done += x;
+	} while (done < n);
+}
+#endif

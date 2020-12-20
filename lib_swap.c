@@ -1,8 +1,11 @@
 #include "lib_swap.h"
 
+#include <errno.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <time.h>
 #include <unistd.h>
@@ -44,6 +47,7 @@ static int read_all_from_swap(void* to, size_t n) {
 }
 
 static void __attribute__((noreturn)) process_is_fucked() {
+	swapify_log("Process seems to be fucked, killing it and ourselves\n");
 	kill(swapify_parent_pid, SIGKILL);
 	close(swap_fd);
 	swapify_exit(1);
@@ -71,6 +75,8 @@ static int _swapify_do_unswap(int nonfatal_fail) {
 			break;
 		}
 
+		// TODO re-mmap region
+
 		if (read_all_from_swap((void*)next.start, next.end - next.start) < 0) {
 			// don't fail if we're just recovering from a failed swap, where there
 			// wasn't enough disk space, and the file couldn't be conformant anyway
@@ -82,6 +88,8 @@ static int _swapify_do_unswap(int nonfatal_fail) {
 			process_is_fucked();
 		}
 	}
+
+	swapify_log("Finished unswapping\n");
 
 	kill(swapify_parent_pid, SIGCONT);
 	close(swap_fd);
@@ -103,15 +111,18 @@ static int swap_cb(struct mapping_info* info) {
 			info->ino != 0 ||
 			info->path_len > 0)
 	{
-		printf("Skipping mapping...\n");
+		swapify_log("Skipping mapping...\n");
 		return 0;
 	}
 
-	printf("Would swap:\n");
-	printf("From %lx to %lx with perms %d priv %d; offs major:minor = %x %x:%x with"
-			" inode %ld and path %.*s\n",
+	char msg[256];
+
+	sprintf(msg, "Would swap:\nFrom %lx to %lx with perms %d priv %d;"
+			" offs major:minor = %x %x:%x with inode %ld and path %.*s\n",
 			info->start, info->end, info->perms, info->private, info->offs, info->major,
 			info->minor, info->ino, info->path_len, info->path);
+
+	swapify_log(msg);
 
 	return 0;
 }
@@ -119,6 +130,9 @@ static int swap_cb(struct mapping_info* info) {
 int swapify_do_swap() {
 	swap_fd = swapify_open_swap();
 	if (swap_fd < 0) {
+		char msg[64];
+		sprintf(msg, "Couldn't open swap file: %s\n", strerror(errno));
+		swapify_log(msg);
 		return -1;
 	}
 
@@ -142,6 +156,7 @@ int swapify_do_swap() {
 //		return -1;
 //	}
 
+	swapify_log("Doing swap\n");
 	if (parse_maps(swapify_parent_pid, swap_cb) < 0) {
 		goto err_unswap;
 	}
@@ -155,6 +170,7 @@ int swapify_do_swap() {
 	return 0;
 
 err_unswap:
+	swapify_log("Error swapping, doing emergency unswap\n");
 	_swapify_do_unswap(1);
 	return -1;
 }

@@ -2,6 +2,7 @@
 
 #include <sched.h>
 #include <signal.h>
+#include <stdio.h>
 #include <sys/mman.h>
 #include <sys/prctl.h>
 #include <unistd.h>
@@ -18,6 +19,7 @@ int swapify_parent_pid = 0;
 
 static void sigint_handler(int sig) {
 	(void)sig;
+	swapify_log("Caught signal, exiting\n");
 	swapify_exit(0);
 }
 
@@ -31,46 +33,61 @@ static int lib_main(void* arg) {
 	prctl(PR_SET_PDEATHSIG, SIGINT);
 	signal(SIGINT, sigint_handler);
 
-	swapify_init_ipc();
 	swapify_init_fileio();
+	swapify_log("Set up file io...\n");
+	swapify_init_ipc();
+	swapify_log("Set up ipc socket...\n");
 
 	int proc_swapped = 0;
 
 	enum swapify_msg msg;
 	while ((msg = swapify_get_message()) != SWAPIFY_MSG_EXIT) {
+		char log_str[64];
+		sprintf(log_str, "Got message: %d\n", msg);
+		swapify_log(log_str);
+
 		if (msg == SWAPIFY_MSG_SWAP) {
 			if (proc_swapped) {
+				swapify_log("[ignored]\n");
 				swapify_reply_message(SWAPIFY_REPLY_NOOP);
 				continue;
 			}
 
 			if (swapify_do_swap() == 0) {
+				swapify_log("[success]\n");
 				swapify_reply_message(SWAPIFY_REPLY_SUCCESS);
 				proc_swapped = 1;
 			}
 			else {
+				swapify_log("[error]\n");
 				swapify_reply_message(SWAPIFY_REPLY_ERROR);
 			}
 		}
 		else if (msg == SWAPIFY_MSG_UNSWAP) {
 			if (!proc_swapped) {
+				swapify_log("[ignored]\n");
 				swapify_reply_message(SWAPIFY_REPLY_NOOP);
 				continue;
 			}
 
 			if (swapify_do_unswap() == 0) {
+				swapify_log("[success]\n");
 				swapify_reply_message(SWAPIFY_REPLY_SUCCESS);
 				proc_swapped = 0;
 			}
 			else {
+				swapify_log("[error]\n");
 				swapify_reply_message(SWAPIFY_REPLY_ERROR);
 			}
 		}
 		else {
 			// ??
+			swapify_log("[unknown]\n");
 			swapify_reply_message(SWAPIFY_REPLY_ERROR);
 		}
 	}
+
+	swapify_log("Exiting due to user request\n");
 
 	if (proc_swapped) {
 		// don't leave parent process swapped if get told to kys
