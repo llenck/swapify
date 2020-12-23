@@ -17,7 +17,7 @@
 static int child_pid = 0;
 int swapify_parent_pid = 0;
 
-static void sigint_handler(int sig) {
+static void exit_handler(int sig) {
 	(void)sig;
 	swapify_log("Caught signal, exiting\n");
 	swapify_exit(0);
@@ -31,10 +31,9 @@ static int lib_main(void* arg) {
 	(void)arg;
 
 	prctl(PR_SET_PDEATHSIG, SIGINT);
-	signal(SIGINT, sigint_handler);
+	signal(SIGINT, exit_handler);
+	signal(SIGTERM, exit_handler);
 
-	swapify_init_fileio();
-	swapify_log("Set up file io...\n");
 	swapify_init_ipc();
 	swapify_log("Set up ipc socket...\n");
 
@@ -104,13 +103,18 @@ static void __attribute__((constructor)) setup() {
 	// send our pid to our child
 	swapify_parent_pid = getpid();
 
+	// open the log from the parent, so that we log something even if the parent process
+	// immediately does something that segfaults the child process
+	swapify_init_fileio();
+	swapify_log("Set up file io...\n");
+
 	// CLONE_PARENT prevents programs like strace from waiting for the child to exit,
 	// which it never would without the parent exiting
 	child_pid = clone(lib_main, child_stack_last_qword,
 			CLONE_VM | CLONE_FILES | CLONE_PARENT, child_stack);
 }
 
-static void swapify_cleanup() {
+void swapify_cleanup() {
 	swapify_close_ipc();
 	swapify_close_fileio();
 }

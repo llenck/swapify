@@ -11,13 +11,13 @@ release : CFLAGS += -O3 -DNDEBUG
 debug : LDFLAGS +=
 release : LDFLAGS += -O
 
-debug: test lib.so
-release: test lib.so
+debug: test libswapify.so
+release: test libswapify.so
 
 test: $(TEST_OBJECTS) $(HEADERS)
 	$(CC) $(TEST_OBJECTS) $(LDFLAGS) -o $@
 
-lib.so: $(LIB_OBJECTS) $(HEADERS)
+libswapify.so: $(LIB_OBJECTS) $(HEADERS)
 	$(CC) $(LIB_OBJECTS) $(LDFLAGS) -shared -o $@
 
 %-exe.o: %.c $(HEADERS)
@@ -28,4 +28,4 @@ lib.so: $(LIB_OBJECTS) $(HEADERS)
 
 .PHONY: clean
 clean:
-	$(RM) test $(TEST_OBJECTS) lib.so $(LIB_OBJECTS)
+	$(RM) test $(TEST_OBJECTS) libswapify.so $(LIB_OBJECTS)
