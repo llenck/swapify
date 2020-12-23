@@ -147,8 +147,8 @@ int parse_maps(long int pid, int (*cb)(struct mapping_info*)) {
 
 				memmove(buf, buf + first_of_line, valid_chars - first_of_line);
 				offs -= first_of_line;
-				first_of_line = 0;
 				valid_chars -= first_of_line;
+				first_of_line = 0;
 			}
 
 			int ret = read(fd, buf + offs, buf_len - offs);
