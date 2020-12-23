@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+
+INSTALLED_PATH="/lib/libswapify.so"
+LOCAL_PATH="$PWD/libswapify.so"
+
+if [ -f "$INSTALLED_PATH" ]; then
+	LIB_PATH="$INSTALLED_PATH"
+elif [ -f "$LOCAL_PATH" ]; then
+	LIB_PATH="$LOCAL_PATH"
+else
+	echo "Error: couldn't find libswapify.so"
+	exit 1
+fi
+
+LD_PRELOAD="$LIB_PATH" exec -- $@
