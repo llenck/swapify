@@ -131,41 +131,45 @@ int swapify_do_swap() {
 		return -1;
 	}
 
-//	if (kill(swapify_parent_pid, SIGSTOP) < 0) {
-//		close(swap_fd);
-//		swapify_unlink_swap();
-//		return -1;
-//	}
-//
-//	int i = 0;
-//	for (; swapify_process_state(swapify_parent_pid) != 'Z' && i < 100; i++) {
-//		struct timespec slep = { 0, 100 * 1000 };
-//		nanosleep(&slep, NULL);
-//	}
-//
-//	if (i >= 100) {
-//		// parent didn't stop after 10ms
-//		close(swap_fd);
-//		swapify_unlink_swap();
-//		kill(swapify_parent_pid, SIGCONT);
-//		return -1;
-//	}
+	if (kill(swapify_parent_pid, SIGSTOP) < 0) {
+		swapify_log("Couldn't stop parent\n");
+		close(swap_fd);
+		swapify_unlink_swap();
+		return -1;
+	}
+
+	int i = 0;
+	for (char c; (c = swapify_process_state(swapify_parent_pid)) != 'T' && i < 100; i++) 
+	{
+		struct timespec slep = { 0, 100 * 1000 };
+		nanosleep(&slep, NULL);
+	}
+
+	if (i >= 100) {
+		// parent didn't stop after 10ms
+		swapify_log("Parent didn't start sleeping within >10ms\n");
+		close(swap_fd);
+		swapify_unlink_swap();
+		kill(swapify_parent_pid, SIGCONT);
+		return -1;
+	}
 
 	swapify_log("Doing swap\n");
 	if (parse_maps(swapify_parent_pid, swap_cb) < 0) {
+		swapify_log("Error from parse_maps, doing emergency unswap\n");
 		goto err_unswap;
 	}
 
 	struct mapping_data end = { 0, 0 };
 
 	if (write_all_to_swap(&end, sizeof(end)) < 0) {
+		swapify_log("Error writing last chunk, doing emergency unswap\n");
 		goto err_unswap;
 	}
 
 	return 0;
 
 err_unswap:
-	swapify_log("Error swapping, doing emergency unswap\n");
 	_swapify_do_unswap(1);
 	return -1;
 }
