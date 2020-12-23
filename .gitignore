@@ -1,3 +1,5 @@
 **.o
 **.so
-test
+**.a
+client/swap
+swap
