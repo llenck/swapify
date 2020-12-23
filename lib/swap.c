@@ -1,4 +1,4 @@
-#include "lib_swap.h"
+#include "swap.h"
 
 #include <errno.h>
 #include <signal.h>
@@ -11,9 +11,9 @@
 #include <unistd.h>
 
 #include "libparsemaps.h"
-#include "lib_procstate.h"
-#include "lib_fileio.h"
-#include "lib_utils.h"
+#include "procstate.h"
+#include "fileio.h"
+#include "utils.h"
 
 // format of file: struct mapping_data, the actual data, repeat
 struct mapping_data {

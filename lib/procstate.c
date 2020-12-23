@@ -1,4 +1,4 @@
-#include "lib_procstate.h"
+#include "procstate.h"
 
 #include <fcntl.h>
 #include <stdio.h>

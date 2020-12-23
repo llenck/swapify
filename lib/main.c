@@ -7,10 +7,10 @@
 #include <sys/prctl.h>
 #include <unistd.h>
 
-#include "lib_ipc.h"
-#include "lib_fileio.h"
-#include "lib_utils.h"
-#include "lib_swap.h"
+#include "ipc.h"
+#include "fileio.h"
+#include "utils.h"
+#include "swap.h"
 
 #define STACK_SZ (64 * 1024)
 

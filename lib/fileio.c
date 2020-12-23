@@ -1,4 +1,4 @@
-#include "lib_fileio.h"
+#include "fileio.h"
 
 #include <fcntl.h>
 #include <linux/limits.h>
@@ -10,7 +10,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "lib_utils.h"
+#include "utils.h"
 
 static int dirfd = -1;
 

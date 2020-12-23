@@ -1,4 +1,4 @@
-#include "lib_ipc.h"
+#include "ipc.h"
 
 #include <fcntl.h>
 #include <poll.h>
@@ -12,7 +12,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-#include "lib_utils.h"
+#include "utils.h"
 
 static int dirfd = -1;
 static int sockfd = -1;
