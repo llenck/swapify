@@ -2,7 +2,7 @@ CFLAGS ?= -Wall -Wextra
 LDFLAGS ?=
 CC ?= gcc
 
-CLIENT_OBJECTS := main.o
+CLIENT_OBJECTS := main.o parse_opts.o
 CLIENT_INCLUDEDIRS := -I ../include
 HEADERS := ../include/ipc_defs.h
 
