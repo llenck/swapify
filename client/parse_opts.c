@@ -20,7 +20,27 @@ static struct option opts[] = {
 };
 
 static void __attribute__((noreturn)) usage(int code) {
-	fprintf(stderr, "Usage: TODO\n");
+	fprintf(stderr,
+"Usage: swap [options] [pids]\n"
+"Where options are a combination of:\n"
+"    -h, --help                print this help and exit\n"
+"    -v, --verbose             print amount of swapped memory (TODO)\n"
+"    -a, --action <ACTION>     action to send to specified pids and sockets (required)\n"
+"    -p, --pid <PID>           act on PID (can be used multiple times)\n"
+"    -s, --socket <NAME>       act on swapify instance listening at NAME\n"
+"    -P, --socket-path <PATH>  path that sockets are resolved relative to\n"
+"\n"
+"At least one PID or NAME is required. ACTION has to be one of swap, unswap\n"
+"or exit. Only one ACTION may be specified. Additional arguments are\n"
+"interpreted as additional pids to act on.\n"
+"\n"
+"The default path that swap looks for sockets in is /run/user/[UID]/swapify,\n"
+"which is also the default path used by swapify.\n"
+"This program can only act on pids that have a swapify instance attached, and\n"
+"it interacts with that instance by looking for sockets at PATH/PID.sock\n"
+"\n"
+"This software is developed at https://github.com/llenck/swapify\n");
+
 	exit(code);
 }
 
