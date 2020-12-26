@@ -1,5 +1,18 @@
 #!/usr/bin/env sh
 
+function usage() {
+	echo "usage:"
+	echo "    $0 [options] <command>"
+	echo ""
+	echo "where options are empty or a combination of:"
+	echo "    -h, --help         print this help"
+	echo ""
+	echo "This software is developed at https://github.com/llenck/swapify"
+	exit 0
+}
+
+{ [ "$1" == "--help" ] || [ "$1" == "-h" ]; } && usage
+
 INSTALLED_PATH="/lib/libswapify.so"
 LOCAL_PATH="$PWD/libswapify.so"
 
@@ -13,3 +26,6 @@ else
 fi
 
 LD_PRELOAD="$LIB_PATH" exec -- $@
+
+# if we're here, exec hasn't worked
+usage
