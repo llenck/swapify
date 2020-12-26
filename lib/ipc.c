@@ -130,7 +130,7 @@ static signed char read_cmd() {
 	loop_for_pollin(connfd);
 
 	signed char cmd;
-	if (recv(connfd, &cmd, 1, 0) < 0) {
+	if (recv(connfd, &cmd, 1, 0) <= 0) {
 		close(connfd);
 		connfd = -1;
 		return -1;

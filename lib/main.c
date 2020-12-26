@@ -33,6 +33,7 @@ static int lib_main(void* arg) {
 	prctl(PR_SET_PDEATHSIG, SIGINT);
 	signal(SIGINT, exit_handler);
 	signal(SIGTERM, exit_handler);
+	signal(SIGPIPE, SIG_IGN);
 
 	swapify_init_ipc();
 	swapify_log("Set up ipc socket...\n");
