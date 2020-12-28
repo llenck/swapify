@@ -2,9 +2,9 @@ CFLAGS ?= -Wall -Wextra
 LDFLAGS ?=
 CC ?= gcc
 
-CLIENT_OBJECTS := main.o parse_opts.o
+CLIENT_OBJECTS := main.o parse_opts.o open_sockets.o
 CLIENT_INCLUDEDIRS := -I ../include
-HEADERS := ../include/ipc_defs.h
+HEADERS := ../include/ipc_defs.h parse_opts.h open_sockets.h
 
 debug : CFLAGS += -Og -g -pg
 release : CFLAGS += -O3
