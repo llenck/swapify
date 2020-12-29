@@ -2,8 +2,6 @@
 #define _PARSE_OPTS_H_INCLUDED
 
 struct opts {
-	int action, verbose;
-
 	int* pids;
 	const char** sockets;
 	int num_pids;
@@ -11,8 +9,11 @@ struct opts {
 
 	char* sock_path;
 	int sock_path_allocated;
+
+	int action;
 };
 
 void parse_opts(int argc, char** argv, struct opts* out);
+void free_opts(struct opts* opt);
 
 #endif

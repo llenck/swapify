@@ -12,7 +12,6 @@
 
 static struct option opts[] = {
 	{ "help" , no_argument, 0, 'h' },
-	{ "verbose" , no_argument, 0, 'v' },
 	{ "action", required_argument, 0, 'a' },
 	{ "pid", required_argument, 0, 'p' },
 	{ "socket", required_argument, 0, 's' },
@@ -24,7 +23,6 @@ static void __attribute__((noreturn)) usage(int code) {
 "Usage: swap [options] [pids]\n"
 "Where options are a combination of:\n"
 "    -h, --help                print this help and exit\n"
-"    -v, --verbose             print amount of swapped memory (TODO)\n"
 "    -a, --action <ACTION>     action to send to specified pids and sockets (required)\n"
 "    -p, --pid <PID>           act on PID (can be used multiple times)\n"
 "    -s, --socket <NAME>       act on swapify instance listening at NAME\n"
@@ -51,7 +49,6 @@ static void __attribute__((noreturn)) err(const char* name, const char* msg) {
 
 void parse_opts(int argc, char** argv, struct opts* out) {
 	out->action = -1;
-	out->verbose = 0;
 
 	out->pids = NULL;
 	out->num_pids = 0;
@@ -59,6 +56,7 @@ void parse_opts(int argc, char** argv, struct opts* out) {
 	out->num_sockets = 0;
 
 	out->sock_path = NULL;
+	out->sock_path_allocated = 0;
 
 	while (1) {
 		int opt = getopt_long(argc, argv, "hva:p:s:P:", opts, NULL);
@@ -73,15 +71,13 @@ void parse_opts(int argc, char** argv, struct opts* out) {
 			break;
 
 		case 'h':
+			free_opts(out);
 			usage(0);
-			break;
-
-		case 'v':
-			out->verbose = 1;
 			break;
 
 		case 'a':
 			if (out->action != -1) {
+				free_opts(out);
 				err(argv[0], "You should specify only one action");
 			}
 
@@ -95,6 +91,7 @@ void parse_opts(int argc, char** argv, struct opts* out) {
 				out->action = SWAPIFY_MSG_EXIT;
 			}
 			else {
+				free_opts(out);
 				err(argv[0], "argument to --action must be swap, unswap or exit");
 			}
 			break;
@@ -103,11 +100,13 @@ void parse_opts(int argc, char** argv, struct opts* out) {
 		{
 			int new_pid = atoi(optarg);
 			if (new_pid <= 0) {
+				free_opts(out);
 				err(argv[0], "Invalid pid");
 			}
 
 			out->pids = realloc(out->pids, ++out->num_pids * sizeof(*out->pids));
 			if (out->pids == NULL) {
+				free_opts(out);
 				err(argv[0], "Out of memory");
 			}
 
@@ -120,6 +119,7 @@ void parse_opts(int argc, char** argv, struct opts* out) {
 			out->sockets = realloc(out->sockets,
 					++out->num_sockets * sizeof(*out->sockets));
 			if (out->sockets == NULL) {
+				free_opts(out);
 				err(argv[0], "Out of memory");
 			}
 
@@ -137,11 +137,13 @@ void parse_opts(int argc, char** argv, struct opts* out) {
 	for (int i = optind; i < argc; i++) {
 		int new_pid = atoi(argv[i]);
 		if (new_pid <= 0) {
+			free_opts(out);
 			err(argv[0], "Invalid pid");
 		}
 
 		out->pids = realloc(out->pids, ++out->num_pids * sizeof(*out->pids));
 		if (out->pids == NULL) {
+			free_opts(out);
 			err(argv[0], "Out of memory");
 		}
 
@@ -149,19 +151,31 @@ void parse_opts(int argc, char** argv, struct opts* out) {
 	}
 
 	if (out->action < 0) {
+		free_opts(out);
 		err(argv[0], "--action is required");
 	}
 
 	if (out->num_pids == 0 && out->num_sockets == 0) {
+		free_opts(out);
 		err(argv[0], "at least one pid or socket is required");
 	}
 
 	if (out->sock_path == NULL) {
 		out->sock_path = malloc(64);
 		if (out->sock_path == NULL) {
+			free_opts(out);
 			err(argv[0], "Out of memory");
 		}
 
 		sprintf(out->sock_path, "/run/user/%d/swapify", getuid());
+		out->sock_path_allocated = 1;
+	}
+}
+
+void free_opts(struct opts* opt) {
+	free(opt->pids);
+	free(opt->sockets);
+	if (opt->sock_path_allocated) {
+		free(opt->sock_path);
 	}
 }

@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -15,6 +16,7 @@ int main(int argc, char** argv) {
 	int num_fds = opt.num_pids + opt.num_sockets;
 	int sfds[num_fds];
 	if (open_sockets(&opt, sfds)) {
+		free_opts(&opt);
 		return 1;
 	}
 
@@ -82,6 +84,8 @@ int main(int argc, char** argv) {
 		fprintf(e_cnt? stderr : stdout, "Got %d successes, %d no-ops and %d errors.\n",
 				s_cnt, n_cnt, e_cnt);
 	}
+
+	free_opts(&opt);
 
 	return e_cnt != 0;
 }
