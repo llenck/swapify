@@ -12,7 +12,9 @@
 
 void close_fds(int* fds, int n) {
 	for (int i = 0; i < n; i++) {
-		close(fds[i]);
+		if (fds[i] >= 0) {
+			close(fds[i]);
+		}
 	}
 }
 
