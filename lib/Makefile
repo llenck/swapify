@@ -8,7 +8,7 @@ LIB_INCLUDEDIRS += -I ../include -I ../deps/libparsemaps
 HEADERS := ipc.h ../include/ipc_defs.h fileio.h utils.h procstate.h swap.h ../deps/libparsemaps/libparsemaps.h
 
 debug : CFLAGS += -Og -g -pg
-release : CFLAGS += -O3 -DNDEBUG
+release : CFLAGS += -Og -DNDEBUG
 debug : LDFLAGS +=
 release : LDFLAGS += -O
 debug : BUILD_TYPE := debug
