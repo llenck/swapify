@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
 
 		close(sfds[i]);
 
-		if (r < 0) {
+		if (r <= 0) {
 			e_cnt++;
 		}
 		else if (ans == SWAPIFY_REPLY_NOOP) {
