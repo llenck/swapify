@@ -18,7 +18,7 @@ debug: libswapify.so
 release: libswapify.so
 
 libswapify.so: $(LIB_OBJECTS) $(HEADERS) $(LIB_LIBS)
-	$(CC) $(LIB_OBJECTS) $(LDFLAGS) -shared -o $@
+	$(CC) $(LIB_OBJECTS) $(LIB_LIBS) $(LDFLAGS) -shared -o $@
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) $(LIB_INCLUDEDIRS) -fpic $< -c -o $@
