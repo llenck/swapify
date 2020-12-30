@@ -60,9 +60,8 @@ void swapify_unlink_swap() {
 
 void swapify_close_fileio() {
 	if (dirfd >= 0) {
-		char path[64];
-		sprintf(path, "%d.swap", swapify_parent_pid);
-		unlinkat(dirfd, path, 0);
+		swapify_unlink_swap();
+
 		close(dirfd);
 		dirfd = -1;
 	}
