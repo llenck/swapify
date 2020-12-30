@@ -46,7 +46,7 @@ void swapify_init_fileio() {
 int swapify_open_swap() {
 	char name[64];
 	sprintf(name, "%d.swap", swapify_parent_pid);
-	int fd = openat(dirfd, name, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC); // O_TMPFILE?
+	int fd = openat(dirfd, name, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0400); // O_TMPFILE?
 
 	return fd;
 }
