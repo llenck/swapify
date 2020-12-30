@@ -41,3 +41,4 @@ _swap() {
 }
 
 complete -F _swap swap
+complete -c swapify
