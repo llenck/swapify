@@ -1,3 +1,5 @@
+#define _GNU_SOURCE // for memmem
+
 #include "swap.h"
 
 #include <errno.h>
@@ -75,7 +77,15 @@ static int _swapify_do_unswap(int nonfatal_fail) {
 			break;
 		}
 
-		// TODO re-mmap region
+		void* r = mmap((void*)next.start, next.end - next.start,
+				PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS,
+				-1, 0);
+
+		if (r == NULL) {
+			swapify_log_fmt(64, "Couldn't unswap: %s\n", strerror(errno));
+			// TODO recovering mechanism
+			return -1;
+		}
 
 		if (read_all_from_swap((void*)next.start, next.end - next.start) < 0) {
 			// don't fail if we're just recovering from a failed swap, where there
@@ -103,6 +113,8 @@ int swapify_do_unswap() {
 }
 
 static int swap_cb(struct mapping_info* info) {
+	static int last_was_lib = 0;
+
 	if (
 			info->perms != (PROT_READ | PROT_WRITE) ||
 			!info->private ||
@@ -111,15 +123,44 @@ static int swap_cb(struct mapping_info* info) {
 			info->ino != 0 ||
 			info->path_len > 0)
 	{
+		last_was_lib = memmem(info->path, info->path_len, ".so", 3) != NULL;
+
 		swapify_log("Skipping mapping...\n");
 		return 0;
 	}
 
+	// we also need a heuristic to not swap out stuff that will segfault us. I don't
+	// know exactly what that memory is used for, but ld.so creates a mapping directly
+	// after shared libraries that doesn't play nice with swapping
+	if (last_was_lib) {
+		last_was_lib = 0;
+		return 0;
+	}
 
-	swapify_log_fmt(256, "Would swap:\nFrom %lx to %lx with perms %d priv %d;"
+	// also don't swap our own stack
+	char x;
+	if (info->start < (uint64_t)&x && info->end > (uint64_t)&x) {
+		return 0;
+	}
+
+	swapify_log_fmt(256, "Swapping:\nFrom %lx to %lx with perms %d priv %d;"
 			" offs major:minor = %x %x:%x with inode %ld and path %.*s\n",
 			info->start, info->end, info->perms, info->private, info->offs, info->major,
 			info->minor, info->ino, info->path_len, info->path);
+
+	struct mapping_data d = { info->start, info->end };
+
+	if (write_all_to_swap(&d, sizeof(d)) < 0) {
+		return -1;
+	}
+
+	if (write_all_to_swap((void*)info->start, info->end - info->start) < 0) {
+		return -1;
+	}
+
+	// don't check for errors here, as there are no errnos in man(2) munmap that
+	// could happen here
+	munmap((void*)info->start, info->end - info->start);
 
 	return 0;
 }
@@ -138,14 +179,22 @@ int swapify_do_swap() {
 		return -1;
 	}
 
-	int i = 0;
-	for (char c; (c = swapify_process_state(swapify_parent_pid)) != 'T' && i < 100; i++) 
-	{
+	swapify_log("Checking whether parent is sleeping...\n");
+	char c;
+	for (int i = 0; i < 100; i++) {
+		c = swapify_process_state(swapify_parent_pid);
+		if (c == 'T' || c == 't') {
+			break;
+		}
+		swapify_log_fmt(64, "Waiting for parent to sleeping (state: %c)\n", c);
 		struct timespec slep = { 0, 100 * 1000 };
-		nanosleep(&slep, NULL);
+		struct timespec rem;
+		nanosleep(&slep, &rem);
 	}
 
-	if (i >= 100) {
+	swapify_log_fmt(32, "Final parent state: %c\n", c);
+
+	if (c != 'T' && c != 't') {
 		// parent didn't stop after 10ms
 		swapify_log("Parent didn't start sleeping within >10ms\n");
 		close(swap_fd);
@@ -169,7 +218,13 @@ int swapify_do_swap() {
 
 	return 0;
 
-err_unswap:
-	_swapify_do_unswap(1);
+err_unswap: ;
+	int r = _swapify_do_unswap(1);
+	if (r < 0) {
+		// this is pretty much the worst case; we're stuck halfway between being swapped
+		// and being unswapped.
+		process_is_fucked();
+	}
+
 	return -1;
 }
