@@ -12,7 +12,7 @@
 #include "utils.h"
 #include "swap.h"
 
-#define STACK_SZ (64 * 1024)
+#define STACK_SZ (128 * 1024)
 
 static int child_pid = 0;
 int swapify_parent_pid = 0;
@@ -100,7 +100,7 @@ static void __attribute__((constructor)) setup() {
 	// could use MAP_GROWSDOWN to be more efficient; STACK_SZ wouldn't be needed then
 	unsigned char* child_stack = mmap(NULL, STACK_SZ, PROT_READ | PROT_WRITE,
 			MAP_ANONYMOUS | MAP_PRIVATE | MAP_STACK, -1, 0);
-	unsigned char* child_stack_last_qword = child_stack + STACK_SZ - 8;
+	unsigned char* child_stack_last_aligned_qword = child_stack + STACK_SZ - 16;
 
 	// send our pid to our child
 	swapify_parent_pid = getpid();
@@ -112,7 +112,7 @@ static void __attribute__((constructor)) setup() {
 
 	// CLONE_PARENT prevents programs like strace from waiting for the child to exit,
 	// which it never would without the parent exiting
-	child_pid = clone(lib_main, child_stack_last_qword,
+	child_pid = clone(lib_main, child_stack_last_aligned_qword,
 			CLONE_VM | CLONE_FILES | CLONE_PARENT, child_stack);
 }
 
