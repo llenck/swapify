@@ -2,7 +2,7 @@ CFLAGS ?= -Wall -Wextra
 LDFLAGS ?=
 CC ?= gcc
 
-LIB_OBJECTS := main.o ipc.o fileio.o procstate.o swap.o
+LIB_OBJECTS := main.o ipc.o fileio.o procstate.o swap.o check_address.o
 LIB_LIBS := ../deps/libparsemaps/libparsemaps.a
 LIB_INCLUDEDIRS += -I ../include -I ../deps/libparsemaps
 HEADERS := ipc.h ../include/ipc_defs.h fileio.h utils.h procstate.h swap.h ../deps/libparsemaps/libparsemaps.h

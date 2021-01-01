@@ -1,11 +1,8 @@
-#define _GNU_SOURCE // for memmem
-
 #include "swap.h"
 
 #include <errno.h>
 #include <signal.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -16,6 +13,7 @@
 #include "procstate.h"
 #include "fileio.h"
 #include "utils.h"
+#include "check_address.h"
 
 // format of file: struct mapping_data, the actual data, repeat
 struct mapping_data {
@@ -77,15 +75,15 @@ static int _swapify_do_unswap(int nonfatal_fail) {
 			break;
 		}
 
-		void* r = mmap((void*)next.start, next.end - next.start,
-				PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS,
-				-1, 0);
-
-		if (r == NULL) {
-			swapify_log_fmt(64, "Couldn't unswap: %s\n", strerror(errno));
-			// TODO recovering mechanism
-			return -1;
-		}
+//		void* r = mmap((void*)next.start, next.end - next.start,
+//				PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS,
+//				-1, 0);
+//
+//		if (r == NULL) {
+//			swapify_log_fmt(64, "Couldn't unswap: %s\n", strerror(errno));
+//			// TODO recovering mechanism
+//			return -1;
+//		}
 
 		if (read_all_from_swap((void*)next.start, next.end - next.start) < 0) {
 			// don't fail if we're just recovering from a failed swap, where there
@@ -113,33 +111,7 @@ int swapify_do_unswap() {
 }
 
 static int swap_cb(struct mapping_info* info) {
-	static int last_was_lib = 0;
-
-	if (
-			info->perms != (PROT_READ | PROT_WRITE) ||
-			!info->private ||
-			info->offs != 0 ||
-			info->major != 0 || info->minor != 0 ||
-			info->ino != 0 ||
-			info->path_len > 0)
-	{
-		last_was_lib = memmem(info->path, info->path_len, ".so", 3) != NULL;
-
-		swapify_log("Skipping mapping...\n");
-		return 0;
-	}
-
-	// we also need a heuristic to not swap out stuff that will segfault us. I don't
-	// know exactly what that memory is used for, but ld.so creates a mapping directly
-	// after shared libraries that doesn't play nice with swapping
-	if (last_was_lib) {
-		last_was_lib = 0;
-		return 0;
-	}
-
-	// also don't swap our own stack
-	char x;
-	if (info->start < (uint64_t)&x && info->end > (uint64_t)&x) {
+	if (swapify_is_indispensible(info)) {
 		return 0;
 	}
 
@@ -151,16 +123,19 @@ static int swap_cb(struct mapping_info* info) {
 	struct mapping_data d = { info->start, info->end };
 
 	if (write_all_to_swap(&d, sizeof(d)) < 0) {
+		swapify_log("Error writing to swap file\n");
 		return -1;
 	}
 
 	if (write_all_to_swap((void*)info->start, info->end - info->start) < 0) {
+		swapify_log("Error writing to swap file\n");
 		return -1;
 	}
 
-	// don't check for errors here, as there are no errnos in man(2) munmap that
-	// could happen here
-	munmap((void*)info->start, info->end - info->start);
+	if (munmap((void*)info->start, info->end - info->start) < 0) {
+		swapify_log("Failed to unmap region\n");
+		return -1;
+	}
 
 	return 0;
 }
