@@ -85,6 +85,7 @@ static int lib_main(void* arg) {
 		}
 	}
 
+	swapify_reply_message(SWAPIFY_REPLY_SUCCESS);
 	swapify_log("Exiting due to user request\n");
 
 	if (proc_swapped) {
