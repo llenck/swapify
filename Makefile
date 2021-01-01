@@ -23,7 +23,8 @@ install: libswapify.so swap
 	install -m755 libswapify.so /lib/libswapify.so
 	install -m755 swap /bin/swap
 	install -m755 swapify /bin/swapify
-	install -m755 swap_completion.bash /etc/bash_completion.d
+	mkdir -p /etc/bash_completion.d
+	install -m755 swap_completion.bash /etc/bash_completion.d/
 
 uninstall:
 	$(RM) /lib/libswapify.so
