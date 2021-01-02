@@ -25,7 +25,8 @@ else
 	exit 1
 fi
 
-LD_PRELOAD="$LIB_PATH" exec -- $@
+# lazy loading tends so segfault (in do_lookup_x from ld.so), so set LD_BIND_NOW
+LD_BIND_NOW=1 LD_PRELOAD="$LIB_PATH" exec -- $@
 
 # if we're here, exec hasn't worked
 usage
