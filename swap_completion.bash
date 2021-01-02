@@ -32,7 +32,11 @@ _swap() {
 			;;
 		*)
 			COMPREPLY=( $(compgen \
-				-W "-h -a -p -s -P --help --action --pid --socket --socket-path" \
+				-W "-h -a -p -s -P --help --action --pid --socket --socket-path
+				$(
+					\ls -1 /run/user/$UID/swapify 2>/dev/null \
+					| grep -E "^[0-9]+\.sock" \
+					| cut -d '.' -f 1)" \
 				-- "$CUR" ) \
 			)
 			return 0
