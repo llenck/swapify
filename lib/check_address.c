@@ -2,11 +2,18 @@
 
 #include "check_address.h"
 
+#include <asm/prctl.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 
 #include "fileio.h"
+
+int arch_prctl(int code, unsigned long* ad) {
+	return syscall(SYS_arch_prctl, code, ad);
+}
 
 static int chk_lib(struct mapping_info* info) {
 	static int last_was_lib = 0;
@@ -57,26 +64,13 @@ static int chk_tls(struct mapping_info* info) {
 	// used for tls (e.g. on my machine I segfaulted for unmapping *fs, which is used for
 	// stack protection functions, which can be turned off for our code but are enabled
 	// in glibc)
-#if defined(__i386__)
-	uint32_t fs, gs;
-	asm (
-		"movl %%fs:0x0, %0\n"
-		"movl %%gs:0x0, %1\n"
-		: "=r"(fs), "=r"(gs)
-		:
-		:);
-#elif defined(__x86_64__)
-	uint64_t fs, gs;
-
-	asm (
-		"movq %%fs:0x0, %0\n"
-		"movq %%gs:0x0, %1\n"
-		: "=r"(fs), "=r"(gs)
-		:
-		:);
-#endif
 
 #if defined(__i386__) || defined(__x86_64__)
+	// if arch_prctl doesn't work, just set fs and gs to 0
+	unsigned long fs = 0, gs = 0;
+	arch_prctl(ARCH_GET_FS, &fs);
+	arch_prctl(ARCH_GET_GS, &gs);
+
 	if (info->start < fs && info->end > fs) {
 		swapify_log("Skipping *$fs...\n");
 		return 1;
