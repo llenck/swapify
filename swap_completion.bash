@@ -8,7 +8,7 @@ _swap() {
 			COMPREPLY=( \
 				$(compgen -W "$( \
 					\ls -1 /run/user/$UID/swapify 2>/dev/null \
-					| grep -v "^[0-9]+\.sock" \
+					| grep -Ev "^[0-9]+\.sock" \
 				)" -- "$CUR" ) \
 			)
 			return 0
@@ -21,7 +21,7 @@ _swap() {
 			# list the pids that we can find sockets for
 			COMPREPLY=( $(compgen -W "$( \
 				\ls -1 /run/user/$UID/swapify 2>/dev/null \
-				| grep "^[0-9]+\.sock" \
+				| grep -E "^[0-9]+\.sock" \
 				| cut -d '.' -f 1 \
 			)" -- "$CUR") )
 			return 0
