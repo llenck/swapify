@@ -35,6 +35,7 @@ static int lib_main(void* arg) {
 	signal(SIGTERM, exit_handler);
 	signal(SIGPIPE, SIG_IGN);
 
+	swapify_init_fileio();
 	swapify_init_ipc();
 	swapify_log("Set up ipc socket...\n");
 
@@ -104,11 +105,6 @@ static void __attribute__((constructor)) setup() {
 
 	// send our pid to our child
 	swapify_parent_pid = getpid();
-
-	// open the log from the parent, so that we log something even if the parent process
-	// immediately does something that segfaults the child process
-	swapify_init_fileio();
-	swapify_log("Set up file io...\n");
 
 	// CLONE_PARENT prevents programs like strace from waiting for the child to exit,
 	// which it never would without the parent exiting
