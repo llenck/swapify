@@ -17,16 +17,18 @@ int arch_prctl(int code, unsigned long* ad) {
 
 static int chk_lib(struct mapping_info* info) {
 	static int last_was_lib = 0;
-	last_was_lib = memmem(info->path, info->path_len, ".so", 3) != NULL;
+	int is_lib = memmem(info->path, info->path_len, ".so", 3) != NULL;
 
-	// we also need a heuristic to not swap out stuff that will segfault us. I don't
-	// know exactly what that memory is used for, but ld.so creates a mapping directly
-	// after shared libraries that doesn't play nice with swapping
+	// I don't know exactly what that memory is used for, but ld.so creates a
+	// mapping directly after shared libraries that doesn't play nice with swapping
+	// (TODO is this important for libraries other than libc?)
 	if (last_was_lib) {
-		last_was_lib = 0;
+		last_was_lib = is_lib;
 		swapify_log("Skipping mapping directly after dynamic object...\n");
 		return 1;
 	}
+
+	last_was_lib = is_lib;
 
 	return 0;
 }
