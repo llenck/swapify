@@ -60,6 +60,8 @@ static int _swapify_do_unswap(int nonfatal_fail) {
 
 	while (1) {
 		if (read_all_from_swap(&next, sizeof(next)) < 0) {
+			swapify_log("Couldn't read mapping info from swap\n");
+
 			// don't fail if we're just recovering from a failed swap, where there
 			// wasn't enough disk space, and the file couldn't be conformant anyway
 			if (nonfatal_fail) {
@@ -75,17 +77,19 @@ static int _swapify_do_unswap(int nonfatal_fail) {
 			break;
 		}
 
-//		void* r = mmap((void*)next.start, next.end - next.start,
-//				PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS,
-//				-1, 0);
-//
-//		if (r == NULL) {
-//			swapify_log_fmt(64, "Couldn't unswap: %s\n", strerror(errno));
-//			// TODO recovering mechanism
-//			return -1;
-//		}
+		void* r = mmap((void*)next.start, next.end - next.start,
+				PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS,
+				-1, 0);
+
+		if (r == NULL) {
+			swapify_log_fmt(64, "Couldn't unswap: %s\n", strerror(errno));
+			// TODO recovering mechanism
+			return -1;
+		}
 
 		if (read_all_from_swap((void*)next.start, next.end - next.start) < 0) {
+			swapify_log("Couldn't read mapping contents from swap\n");
+
 			// don't fail if we're just recovering from a failed swap, where there
 			// wasn't enough disk space, and the file couldn't be conformant anyway
 			if (nonfatal_fail) {
@@ -191,9 +195,18 @@ int swapify_do_swap() {
 		goto err_unswap;
 	}
 
+	if (lseek(swap_fd, 0, SEEK_SET) < 0) {
+		swapify_log("Couldn't seek on swap_fd after swapping\n");
+		process_is_fucked();
+	}
 	return 0;
 
-err_unswap: ;
+err_unswap:
+	if (lseek(swap_fd, 0, SEEK_SET) < 0) {
+		swapify_log("Couldn't seek on swap_fd during emergency unswap\n");
+		process_is_fucked();
+	}
+
 	int r = _swapify_do_unswap(1);
 	if (r < 0) {
 		// this is pretty much the worst case; we're stuck halfway between being swapped
