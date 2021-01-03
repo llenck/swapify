@@ -40,15 +40,17 @@ Installing
 
 Just run `make release && sudo make install`. The default make target is a debug build, which will litter `~/.swapify/` with log files, so it is recommended to use a release build, unless you want to file a bug report.
 
+If you want to uninstall swapify, just run `make uninstall`.
+
 Known Issues
 ------
 
 There are currently quite a few issues with this software:
-- Some commands seem to deadlock when used with `swapify` (known: steam, git push, minecraft-launcher).
+- Some commands seem to deadlock when used with `swapify` (known: steam, git push, minecraft-launcher)
 - Programs use more memory than before after being unmapped, since swapify can't interact with the mechanism that Linux uses to only actually allocate pages when they're being used
-- Swapify doesn't play nicely with 32-bit applications on 64-bit systems, but should work on systems that are all 32-bit.
-- For now, this program will also kill the process on failure to unswap, but this might be fixed in the future.
-- When used with certain programs, swapify creates many zombie processes, which could use up PIDs fairly quickly if you have them limited to a low value (check `sysctl kernel.pid_max`).
+- Swapify doesn't play nicely with 32-bit applications on 64-bit systems, but should work on systems that are all 32-bit
+- For now, this program will also kill the process on failure to unswap, but this might be fixed in the future
+- When used with certain programs, swapify creates many zombie processes, which could use up PIDs fairly quickly if you have them limited to a low value (check `sysctl kernel.pid_max`)
 
 Lastly, I don't recommend using this Software for anything too important, as this is quite experimental and might crash a lot (though I personally don't know of any programs that crash unexpectedly). 
 
