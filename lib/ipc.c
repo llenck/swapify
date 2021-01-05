@@ -112,7 +112,7 @@ static void loop_for_pollin(int fd) {
 	do {
 		poll(&ev, 1, 1000);
 
-		char c = swapify_process_state(swapify_parent_pid);
+		signed char c = swapify_process_state(swapify_parent_pid);
 		if (c < 0 || c == 'Z') {
 			swapify_exit(0);
 		}
