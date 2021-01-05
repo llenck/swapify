@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 struct mapping_info {
-	uint64_t start, end;
+	uintptr_t start, end;
 	int perms;
 	int private;
 	int offs;

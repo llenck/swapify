@@ -16,7 +16,7 @@ static signed const char h2i[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -
 
 static signed const char d2i[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 
-static void parse_hex_u64(const char** str, off_t len, uint64_t* val) {
+static void parse_hex_uptr(const char** str, off_t len, uintptr_t* val) {
 	const char* og_str = *str;
 	*val = 0;
 	while (*str - og_str < len) {
@@ -61,12 +61,12 @@ static void parse_dec_u64(const char** str, off_t len, uint64_t* val) {
 static int parse_line(const char* str, size_t len, struct mapping_info* inf) {
 	const char* const og_str = str;
 
-	parse_hex_u64(&str, len, &inf->start);
+	parse_hex_uptr(&str, len, &inf->start);
 	if ((ssize_t)len <= str - og_str) {
 		return -1;
 	}
 
-	parse_hex_u64(&str, len - (str - og_str), &inf->end);
+	parse_hex_uptr(&str, len - (str - og_str), &inf->end);
 	// also check length for the inf->permsissions, since those are constant-length
 	if ((ssize_t)len <= str - og_str + 4) {
 		return -1;

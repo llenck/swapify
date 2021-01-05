@@ -58,7 +58,7 @@ static int chk_perms(struct mapping_info* info) {
 static int chk_stack(struct mapping_info* info) {
 	// also don't swap our own stack
 	char x;
-	if (info->start < (uint64_t)&x && info->end > (uint64_t)&x) {
+	if (info->start < (uintptr_t)&x && info->end > (uintptr_t)&x) {
 		swapify_log("Skipping our own stack...\n");
 		return 1;
 	}

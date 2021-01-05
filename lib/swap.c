@@ -17,7 +17,7 @@
 
 // format of file: struct mapping_data, the actual data, repeat
 struct mapping_data {
-	uint64_t start, end;
+	uintptr_t start, end;
 };
 
 static int swap_fd = -1;
