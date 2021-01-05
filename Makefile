@@ -7,11 +7,11 @@ release: libswapify.so swap
 
 libswapify.so:
 	$(MAKE) $(BUILD_TYPE) -C lib
-	ln -f lib/libswapify.so $@
+	cp --reflink=auto lib/libswapify.so $@
 
 swap:
 	$(MAKE) $(BUILD_TYPE) -C client
-	ln -f client/swap $@
+	cp --reflink=auto client/swap $@
 
 clean:
 	$(MAKE) clean -C lib
