@@ -67,6 +67,9 @@ static int chk_stack(struct mapping_info* info) {
 }
 
 static int chk_tls(struct mapping_info* info) {
+	// suppress unused parameter warnings on non-x86 systems
+	(void)info;
+
 	// also don't swap regions that are pointed to by segment registers, which are often
 	// used for tls (e.g. on my machine I segfaulted for unmapping *fs, which is used for
 	// stack protection functions, which can be turned off for our code but are enabled
