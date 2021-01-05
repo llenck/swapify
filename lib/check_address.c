@@ -2,7 +2,10 @@
 
 #include "check_address.h"
 
+#if defined(__i386__) || defined(__x86_64__)
 #include <asm/prctl.h>
+#endif
+
 #include <stdint.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -11,9 +14,11 @@
 
 #include "fileio.h"
 
+#if defined(__i386__) || defined(__x86_64__)
 int arch_prctl(int code, unsigned long* ad) {
 	return syscall(SYS_arch_prctl, code, ad);
 }
+#endif
 
 static int chk_lib(struct mapping_info* info) {
 	static int last_was_lib = 0;
