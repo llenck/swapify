@@ -46,12 +46,10 @@ Known Issues
 ------
 
 There are currently quite a few issues with this software:
-- Some commands seem to deadlock when used with `swapify` (known: steam, git push, minecraft-launcher)
 - Programs use more memory than before after being unmapped, since swapify can't interact with the mechanism that Linux uses to only actually allocate pages when they're being used
-- Swapify doesn't play nicely with 32-bit applications on 64-bit systems, but should work on systems that are all 32-bit
+- Swapify doesn't play nicely with 32-bit applications on 64-bit systems (e.g. steam), but should work on systems that are all 32-bit
 - For now, this program will also kill the process on failure to unswap, but this might be fixed in the future
-- When used with certain programs, swapify creates many zombie processes, which could use up PIDs fairly quickly if you have them limited to a low value (check `sysctl kernel.pid_max`)
 
 Lastly, I don't recommend using this Software for anything too important, as this is quite experimental and might crash a lot (though I personally don't know of any programs that crash unexpectedly). 
 
-If you can figure out why some programs deadlock or find any application that segfaults when (un-)swapping, please create an issue at https://github.com/llenck/swapify/issues and include things like your processor architecture, kernel, C library implementation, Linux Distribution, log file (`~/.swapify/log-[SWAPIFY_PID]-[PID]-[random stuff]`) and the program that crashed in the bug report.
+If you find any application that segfaults when (un-)swapping, please create an issue at https://github.com/llenck/swapify/issues and include things like your processor architecture, kernel, C library implementation, Linux Distribution, log file (`~/.swapify/log-[SWAPIFY_PID]-[PID]-[random stuff]`) and the program that crashed in the bug report.
