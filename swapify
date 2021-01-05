@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-function usage() {
+usage() {
 	echo "usage:"
 	echo "    $0 [options] <command>"
 	echo ""
@@ -11,7 +11,7 @@ function usage() {
 	exit 0
 }
 
-{ [ "$1" == "--help" ] || [ "$1" == "-h" ]; } && usage
+( [ "$1" = "--help" ] || [ "$1" = "-h" ]; ) && usage
 
 INSTALLED_PATH="/lib/libswapify.so"
 LOCAL_PATH="$PWD/libswapify.so"
@@ -26,7 +26,7 @@ else
 fi
 
 # lazy loading tends so segfault (in do_lookup_x from ld.so), so set LD_BIND_NOW
-LD_BIND_NOW=1 LD_PRELOAD="$LIB_PATH" exec -- $@
+LD_BIND_NOW=1 LD_PRELOAD="$LIB_PATH" exec "$@"
 
 # if we're here, exec hasn't worked
 usage
