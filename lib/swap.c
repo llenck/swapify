@@ -1,6 +1,7 @@
 #include "swap.h"
 
 #include <errno.h>
+#include <inttypes.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -119,8 +120,9 @@ static int swap_cb(struct mapping_info* info) {
 		return 0;
 	}
 
-	swapify_log_fmt(256, "Swapping:\nFrom %lx to %lx with perms %d priv %d;"
-			" offs major:minor = %x %x:%x with inode %ld and path %.*s\n",
+	swapify_log_fmt(256,
+			"Swapping:\nFrom %" PRIuPTR " to %" PRIuPTR " with perms %d priv %d;"
+			" offs major:minor = %x %x:%x with inode %" PRIu64 " and path %.*s\n",
 			info->start, info->end, info->perms, info->private, info->offs, info->major,
 			info->minor, info->ino, info->path_len, info->path);
 
