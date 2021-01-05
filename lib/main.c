@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <sys/prctl.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include "ipc.h"
@@ -30,7 +32,6 @@ static void exit_handler(int sig) {
 static int lib_main(void* arg) {
 	(void)arg;
 
-	prctl(PR_SET_PDEATHSIG, SIGINT);
 	signal(SIGINT, exit_handler);
 	signal(SIGTERM, exit_handler);
 	signal(SIGPIPE, SIG_IGN);
@@ -97,19 +98,65 @@ static int lib_main(void* arg) {
 	swapify_exit(0);
 }
 
-static void __attribute__((constructor)) setup() {
+static int double_clone(void* arg) {
+	(void)arg;
+
 	// could use MAP_GROWSDOWN to be more efficient; STACK_SZ wouldn't be needed then
 	unsigned char* child_stack = mmap(NULL, STACK_SZ, PROT_READ | PROT_WRITE,
 			MAP_ANONYMOUS | MAP_PRIVATE | MAP_STACK, -1, 0);
-	unsigned char* child_stack_last_aligned_qword = child_stack + STACK_SZ - 16;
 
-	// send our pid to our child
-	swapify_parent_pid = getpid();
+	if (child_stack == NULL) {
+		// soft fail
+		_exit(0);
+	}
+
+	unsigned char* child_stack_last_aligned_qword = child_stack + STACK_SZ - 16;
 
 	// CLONE_PARENT prevents programs like strace from waiting for the child to exit,
 	// which it never would without the parent exiting
 	child_pid = clone(lib_main, child_stack_last_aligned_qword,
-			CLONE_VM | CLONE_FILES | CLONE_PARENT, child_stack);
+			CLONE_VM | CLONE_FILES, child_stack);
+
+	_exit(0);
+}
+
+static void __attribute__((constructor)) setup() {
+	// could use MAP_GROWSDOWN to be more efficient; STACK_SZ wouldn't be needed then
+	unsigned char* child_stack = mmap(NULL, STACK_SZ, PROT_READ | PROT_WRITE,
+			MAP_ANONYMOUS | MAP_PRIVATE | MAP_STACK, -1, 0);
+
+	if (child_stack == NULL) {
+		return;
+	}
+
+	unsigned char* child_stack_last_aligned_qword = child_stack + STACK_SZ - 16;
+
+	// send our pid to our childs child
+	swapify_parent_pid = getpid();
+
+	// spawn a child process that exits directly after spawning another child that will
+	// be the actualy swapify process
+	int cloner_pid = clone(double_clone, child_stack_last_aligned_qword,
+			CLONE_VM | CLONE_FILES, child_stack);
+
+	if (cloner_pid < 0) {
+		goto end;
+	}
+
+	// and wait for that child so that we don't create a zombie process, which might be
+	// the cause of some deadlocks. this effectively reparents the swapify process to
+	// pid 1 (or a parent that used prctl(PR_SET_CHILD_SUBREAPER, ...))
+	int st;
+	while (1) {
+		int r = waitpid(cloner_pid, &st, __WCLONE);
+
+		if (r == cloner_pid) {
+			break;
+		}
+	}
+
+end:
+	munmap(child_stack, STACK_SZ);
 }
 
 void swapify_cleanup() {
