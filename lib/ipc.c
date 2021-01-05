@@ -2,7 +2,6 @@
 
 #include <fcntl.h>
 #include <poll.h>
-#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/prctl.h>
@@ -13,6 +12,7 @@
 #include <unistd.h>
 
 #include "utils.h"
+#include "procstate.h"
 
 static int dirfd = -1;
 static int sockfd = -1;
@@ -112,7 +112,8 @@ static void loop_for_pollin(int fd) {
 	do {
 		poll(&ev, 1, 1000);
 
-		if (kill(swapify_parent_pid, 0) < 0) {
+		char c = swapify_process_state(swapify_parent_pid);
+		if (c < 0 || c == 'Z') {
 			swapify_exit(0);
 		}
 	} while (!ev.revents);

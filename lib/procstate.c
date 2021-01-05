@@ -1,49 +1,53 @@
 #include "procstate.h"
 
+#include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <stdio.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <errno.h>
 
 int swapify_process_state(int pid) {
 	char path[128];
-	sprintf(path, "/proc/%d/status", pid);
+	sprintf(path, "/proc/%d/stat", pid);
 	int fd = open(path, O_RDONLY);
 	if (fd < 0) {
 		return -1;
 	}
 
-	char buf[128];
-	int offs = 0, valid_bytes = 0;
-	int line_index = 0, after_colon = 0;
-	while (1) {
-		if (offs <= valid_bytes) {
-			int new_bytes = read(fd, buf + offs, 128 - offs);
-			if (new_bytes < 0) {
-				if (errno == EINTR) {
-					continue;
-				}
-				else {
-					return -1;
-				}
+	const int buf_len = 4096;
+	char buf[buf_len]; // should be larger than max size
+	ssize_t r;
+	size_t off = 0;
+
+	// read the whole file
+	do {
+		r = read(fd, buf + off, buf_len - off);
+		if (r < 0) {
+			if (errno == EINTR) {
+				continue;
 			}
-			if (new_bytes == 0) {
-				return -1;
-			}
+
+			close(fd);
+			return -1;
 		}
 
-		if (after_colon && buf[offs] != '\t') {
-			return buf[offs];
-		}
-		else if (line_index == 2 && buf[offs] == ':') {
-			after_colon = 1;
-		}
-		else if (line_index < 2 && buf[offs] == '\n') {
-			line_index++;
-		}
+		off += r;
+	} while (r != 0);
 
-		offs++;
+	close(fd);
+
+	// to prevent sqli-like problems with the second field, look for the last
+	// closing brace (which is how most good libraries handle it)
+	char* last_closing_brace = memchr(buf, ')', off);
+
+	// if, for whatever reason, there was none, or it is too close to the end of the
+	// file, return an error intead of crashing or returning garbage
+	int idx = last_closing_brace - buf;
+	if (last_closing_brace == NULL || idx + 2 > (ssize_t)off) {
+		return -1;
 	}
+
+	// return the character of the next field
+	return buf[idx + 2];
 }
