@@ -84,8 +84,19 @@ static int _swapify_do_unswap(int nonfatal_fail) {
 
 		if (r == NULL) {
 			swapify_log_fmt(64, "Couldn't unswap: %s\n", strerror(errno));
-			// TODO recovering mechanism
-			return -1;
+
+			// in theory we could have recovering mechanisms here, but in practice I've
+			// found that mmap only refuses mappings that are "obvious overcommits",
+			// which doesn't happen if we didn't swap something like memtester.
+			// Instead of mmap returning NULL, my systems just seems to freeze (and even
+			// sysrq+f doesn't fix it). So, instead of having recovering mechanisms here,
+			// we should have the swap utility check whether we have enough available
+			// memory, and will have it exit if there's not enough memory and the user
+			// doesn't tell it to force unswap.
+			// the only thing that might change this is the user setting
+			// vm.overcommit_memory = 2 ("never overcommit").
+
+			process_is_fucked();
 		}
 
 		if (read_all_from_swap((void*)next.start, next.end - next.start) < 0) {
