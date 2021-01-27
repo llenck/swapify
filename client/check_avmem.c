@@ -85,6 +85,25 @@ static uintptr_t pid_mem(int dfd, int pid) {
 	return stats.st_size;
 }
 
+static uintptr_t socket_mem(int dfd, const char* sockname) {
+	const char* second_last_dot = NULL, * last_dot = NULL;
+
+	for (const char* s = sockname; *s; s++) {
+		if (*s == '.') {
+			second_last_dot = last_dot;
+			last_dot = s;
+		}
+	}
+	if (second_last_dot == NULL) {
+		// soft fail for weird socket names
+		return 0;
+	}
+
+	int pid = atoi(second_last_dot + 1);
+
+	return pid_mem(dfd, pid);
+}
+
 // this function mostly fails softly, so caution is still advised
 void check_avmem(struct opts* opt) {
 	if (opt->force_overcommit
@@ -96,7 +115,6 @@ void check_avmem(struct opts* opt) {
 
 	struct mem_stats st;
 	if (get_avmem(&st) < 0) {
-		puts("b");
 		return;
 	}
 
@@ -104,13 +122,15 @@ void check_avmem(struct opts* opt) {
 
 	int dfd = open(opt->swap_path, O_DIRECTORY | O_RDONLY);
 	if (dfd < 0) {
-		puts("c");
 		return;
 	}
 
 	intptr_t swapped_memory = 0;
 	for (int i = 0; i < opt->num_pids; i++) {
 		swapped_memory += pid_mem(dfd, opt->pids[i]);
+	}
+	for (int i = 0; i < opt->num_sockets; i++) {
+		swapped_memory += socket_mem(dfd, opt->sockets[i]);
 	}
 
 	close(dfd);
