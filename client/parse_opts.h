@@ -10,6 +10,10 @@ struct opts {
 	char* sock_path;
 	int sock_path_allocated;
 
+	char* swap_path;
+	int swap_path_allocated;
+	int force_overcommit;
+
 	int action;
 };
 

@@ -15,7 +15,10 @@ static struct option opts[] = {
 	{ "action", required_argument, 0, 'a' },
 	{ "pid", required_argument, 0, 'p' },
 	{ "socket", required_argument, 0, 's' },
-	{ "socket-path", required_argument, 0, 'P' }
+	{ "socket-path", required_argument, 0, 'P' },
+	{ "swap-path", required_argument, 0, 'S' },
+	{ "force", no_argument, 0, 'f' },
+	{ NULL, 0, 0, 0 }
 };
 
 static void __attribute__((noreturn)) usage(int code) {
@@ -27,6 +30,8 @@ static void __attribute__((noreturn)) usage(int code) {
 "    -p, --pid <PID>           act on PID (can be used multiple times)\n"
 "    -s, --socket <NAME>       act on swapify instance listening at NAME\n"
 "    -P, --socket-path <PATH>  path that sockets are resolved relative to\n"
+"    -S, --swap-path <PATH>    directory to search for swap files in\n"
+"    -f, --force               force unswapping even if it requires overcommitting\n"
 "\n"
 "At least one PID or NAME is required. ACTION has to be one of swap, unswap\n"
 "or exit. Only one ACTION may be specified. Additional arguments are\n"
@@ -36,6 +41,10 @@ static void __attribute__((noreturn)) usage(int code) {
 "which is also the default path used by swapify.\n"
 "This program can only act on pids that have a swapify instance attached, and\n"
 "it interacts with that instance by looking for sockets at PATH/PID.sock\n"
+"\n"
+"Available memory is checked before unswapping, and a unswap command won't be sent\n"
+"if over 95%% of memory would need to be used after unswapping, unless --force\n"
+"was specified.\n"
 "\n"
 "This software is developed at https://github.com/llenck/swapify\n");
 
@@ -57,9 +66,13 @@ void parse_opts(int argc, char** argv, struct opts* out) {
 
 	out->sock_path = NULL;
 	out->sock_path_allocated = 0;
+	out->swap_path = NULL;
+	out->swap_path_allocated = 0;
+
+	out->force_overcommit = 0;
 
 	while (1) {
-		int opt = getopt_long(argc, argv, "hva:p:s:P:", opts, NULL);
+		int opt = getopt_long(argc, argv, "hva:p:s:P:S:f", opts, NULL);
 
 		if (opt == -1) {
 			break;
@@ -130,6 +143,13 @@ void parse_opts(int argc, char** argv, struct opts* out) {
 		case 'P':
 			out->sock_path = optarg;
 			break;
+
+		case 'S':
+			out->swap_path = optarg;
+			break;
+
+		case 'f':
+			out->force_overcommit = 1;
 		}
 	}
 
@@ -170,6 +190,28 @@ void parse_opts(int argc, char** argv, struct opts* out) {
 		sprintf(out->sock_path, "/run/user/%d/swapify", getuid());
 		out->sock_path_allocated = 1;
 	}
+
+	if (out->swap_path == NULL) {
+		const char* home = getenv("HOME");
+		if (home == NULL) {
+			return; // soft fail
+		}
+
+		out->swap_path = malloc(strlen(home) + 16);
+		if (out->swap_path == NULL) {
+			if (out->force_overcommit) {
+				return; // soft fail if we're forcing overcommitting anyways
+			}
+			else {
+				// otherwise, hard fail
+				free_opts(out);
+				err(argv[0], "Out of memory");
+			}
+		}
+
+		sprintf(out->swap_path, "%s/.swapify", home);
+		out->swap_path_allocated = 1;
+	}
 }
 
 void free_opts(struct opts* opt) {
@@ -177,5 +219,8 @@ void free_opts(struct opts* opt) {
 	free(opt->sockets);
 	if (opt->sock_path_allocated) {
 		free(opt->sock_path);
+	}
+	if (opt->swap_path_allocated) {
+		free(opt->swap_path);
 	}
 }

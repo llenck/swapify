@@ -7,11 +7,14 @@
 
 #include "parse_opts.h"
 #include "open_sockets.h"
+#include "check_avmem.h"
 #include "ipc_defs.h"
 
 int main(int argc, char** argv) {
 	struct opts opt;
 	parse_opts(argc, argv, &opt);
+
+	check_avmem(&opt);
 
 	int num_fds = opt.num_pids + opt.num_sockets;
 	int sfds[num_fds];
