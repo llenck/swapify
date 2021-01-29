@@ -46,9 +46,10 @@ Known Issues
 ------
 
 There are currently quite a few issues with this software:
-- Programs use more memory than before after being unmapped, since swapify can't interact with the mechanism that Linux uses to only actually allocate pages when they're being used
+- Programs use slightly more memory than before after being unmapped, since swapify can't interact with the mechanism that Linux uses to only actually allocate pages when they're being used
 - Swapify doesn't play nicely with 32-bit applications on 64-bit systems (e.g. steam), but should work on systems that are all 32-bit
 - For now, this program will also kill the process on failure to unswap, but this might be fixed in the future
+- Swapify doesn't seem to work on ARM systems, e.g. AArch64 (yet)
 
 Lastly, I don't recommend using this Software for anything too important, as this is quite experimental and might crash a lot (though I personally don't know of any programs that crash unexpectedly). 
 
