@@ -19,15 +19,19 @@ clean:
 	$(MAKE) clean -C deps/libparsemaps
 	$(RM) libswapify.so swap
 
+INSTALL_PREFIX ?= # empty -> root
+
 install: libswapify.so swap
-	install -m755 libswapify.so /lib/libswapify.so
-	install -m755 swap /bin/swap
-	install -m755 swapify /bin/swapify
-	mkdir -p /etc/bash_completion.d
-	install -m755 swap_completion.bash /etc/bash_completion.d/
+	mkdir -p $(INSTALL_PREFIX)/lib
+	mkdir -p $(INSTALL_PREFIX)/bin
+	install -m755 libswapify.so $(INSTALL_PREFIX)/lib/libswapify.so
+	install -m755 swap $(INSTALL_PREFIX)/bin/swap
+	install -m755 swapify $(INSTALL_PREFIX)/bin/swapify
+	mkdir -p $(INSTALL_PREFIX)/etc/bash_completion.d
+	install -m755 swap_completion.bash $(INSTALL_PREFIX)/etc/bash_completion.d/
 
 uninstall:
-	$(RM) /lib/libswapify.so
-	$(RM) /bin/swap
-	$(RM) /bin/swapify
-	$(RM) /etc/bash_completion.d/swap_completion.bash
+	$(RM) $(INSTALL_PREFIX)/lib/libswapify.so
+	$(RM) $(INSTALL_PREFIX)/bin/swap
+	$(RM) $(INSTALL_PREFIX)/bin/swapify
+	$(RM) $(INSTALL_PREFIX)/etc/bash_completion.d/swap_completion.bash
